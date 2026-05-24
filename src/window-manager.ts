@@ -239,3 +239,7 @@ function createDragState(wm: WindowManager): DragState {
     },
   };
 }
+
+function parsePx(value: string): number {
+  return parseInt(value, 10) || 0;
+}
