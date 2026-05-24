@@ -1,15 +1,11 @@
-import type { WindowHandle, WindowOptions, WindowRect } from "./types.ts";
-import type { WindowManagerEventMap } from "./events.ts";
+import type {WindowHandle, WindowOptions, WindowRect} from "./types.ts";
+import type {WindowManagerEventMap} from "./events.ts";
 
 interface WindowState {
   handle: WindowHandle;
   element: HTMLDivElement;
   titleBar: HTMLDivElement;
   surface: HTMLDivElement;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
   minWidth: number;
   minHeight: number;
   orderIdx: number;
@@ -73,10 +69,6 @@ export class WindowManager extends EventTarget {
       element,
       titleBar,
       surface,
-      x: options.x,
-      y: options.y,
-      width: options.width,
-      height: options.height,
       minWidth: options.minWidth ?? 0,
       minHeight: options.minHeight ?? 0,
       orderIdx: 0,
@@ -138,11 +130,12 @@ export class WindowManager extends EventTarget {
     const windowState = this.windows.get(handle);
     if (!windowState) return null;
 
+    const el = windowState.element;
     return {
-      x: windowState.x,
-      y: windowState.y,
-      width: windowState.width,
-      height: windowState.height,
+      x: parsePx(el.style.left),
+      y: parsePx(el.style.top),
+      width: parsePx(el.style.width),
+      height: parsePx(el.style.height),
     };
   }
 
@@ -150,15 +143,18 @@ export class WindowManager extends EventTarget {
     const windowState = this.windows.get(handle);
     if (!windowState) return;
 
+    const el = windowState.element;
+    const width = parsePx(el.style.width);
+    const height = parsePx(el.style.height);
+
     // Clamp to container bounds.
     const containerRect = this.desktopElement.getBoundingClientRect();
-    const clampedX = Math.max(0, Math.min(x, containerRect.width - windowState.width));
-    const clampedY = Math.max(0, Math.min(y, containerRect.height - windowState.height));
+    const clampedX = Math.max(0, Math.min(x, containerRect.width - width));
+    const clampedY = Math.max(0, Math.min(y, containerRect.height - height));
 
-    windowState.x = clampedX;
-    windowState.y = clampedY;
-    windowState.element.style.left = `${clampedX}px`;
-    windowState.element.style.top = `${clampedY}px`;
+    el.style.left = `${clampedX}px`;
+    el.style.top = `${clampedY}px`;
+
   }
 
   private applyZIndices(): void {
@@ -217,9 +213,6 @@ function createDragState(wm: WindowManager): DragState {
 
   function onMouseMove(e: MouseEvent): void {
     if (!activeHandle) return;
-
-    const rect = wm.getWindowRect(activeHandle);
-    if (!rect) return;
 
     const newX = e.clientX - offsetX;
     const newY = e.clientY - offsetY;
