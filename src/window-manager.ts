@@ -21,12 +21,14 @@ export class WindowManager extends EventTarget {
   private readonly desktopElement: HTMLElement;
   private readonly windows: Map<WindowHandle, WindowState> = new Map();
   private readonly dragState: DragState;
+  private readonly resizeState: ResizeState;
 
   constructor(container: HTMLElement) {
     super();
     this.desktopElement = container;
     this.desktopElement.classList.add("biurko-desktop");
     this.dragState = createDragState(this);
+    this.resizeState = createResizeState(this);
   }
 
   public createWindow(options: WindowOptions): WindowHandle {
@@ -68,6 +70,11 @@ export class WindowManager extends EventTarget {
       const resizeRegion = document.createElement("div");
       resizeRegion.dataset["resizeDirection"] = direction;
       applyResizeHandleStyles(resizeRegion, direction);
+
+      resizeRegion.addEventListener("mousedown", (e: MouseEvent): void => {
+        e.stopPropagation();
+        this.resizeState.start(handle, direction, e.clientX, e.clientY);
+      });
 
       element.appendChild(resizeRegion);
     }
@@ -271,6 +278,93 @@ function createDragState(wm: WindowManager): DragState {
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("mouseup", onMouseUp);
     },
+  };
+}
+
+
+interface ResizeState {
+  start(handle: WindowHandle, direction: ResizeDirection, clientX: number, clientY: number): void;
+}
+
+function createResizeState(wm: WindowManager): ResizeState {
+  let activeHandle: WindowHandle | null = null;
+  let activeDirection: ResizeDirection | null = null;
+  let startX = 0;
+  let startY = 0;
+  let startRect: WindowRect = {x: 0, y: 0, width: 0, height: 0};
+  let minWidth = 0;
+  let minHeight = 0;
+
+  function start(handle: WindowHandle, direction: ResizeDirection, clientX: number, clientY: number): void {
+    const rect = wm.getWindowRect(handle);
+    if (!rect) return;
+
+    const minSize = wm.getMinSize(handle);
+    if (!minSize) return;
+
+    activeHandle = handle;
+    activeDirection = direction;
+    startX = clientX;
+    startY = clientY;
+    startRect = {...rect};
+    minWidth = minSize.minWidth;
+    minHeight = minSize.minHeight;
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }
+
+  function onMouseMove(e: MouseEvent): void {
+    if (!activeHandle || !activeDirection) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    let newX = startRect.x;
+    let newY = startRect.y;
+    let newWidth = startRect.width;
+    let newHeight = startRect.height;
+
+    // Horizontal component.
+    if (activeDirection.includes("e")) { // Grow in x-axis.
+      newWidth = Math.max(minWidth, startRect.width + dx);
+    } else if (activeDirection.includes("w")) { // Shrink in x-axis.
+      const proposedWidth = startRect.width - dx;
+      if (proposedWidth >= minWidth) {
+        newWidth = proposedWidth;
+        newX = startRect.x + dx;
+      } else {
+        newWidth = minWidth;
+        newX = startRect.x + (startRect.width - minWidth);
+      }
+    }
+
+    // Vertical component.
+    if (activeDirection.includes("s")) { // Grow in y-axis.
+      newHeight = Math.max(minHeight, startRect.height + dy);
+    } else if (activeDirection.includes("n")) { // Shrink in y-axis.
+      const proposedHeight = startRect.height - dy;
+      if (proposedHeight >= minHeight) {
+        newHeight = proposedHeight;
+        newY = startRect.y + dy;
+      } else {
+        newHeight = minHeight;
+        newY = startRect.y + (startRect.height - minHeight);
+      }
+    }
+
+    wm.resizeWindow(activeHandle, newX, newY, newWidth, newHeight);
+  }
+
+  function onMouseUp(): void {
+    activeHandle = null;
+    activeDirection = null;
+    document.removeEventListener("mousemove", onMouseMove);
+    document.removeEventListener("mouseup", onMouseUp);
+  }
+
+  return {
+    start,
   };
 }
 
