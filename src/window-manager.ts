@@ -1,5 +1,11 @@
 import type {WindowHandle, WindowOptions, WindowRect} from "./types.ts";
-import type {WindowManagerEventMap} from "./events.ts";
+import type {
+  WindowCloseEventDetail,
+  WindowFocusEventDetail,
+  WindowManagerEventMap,
+  WindowMoveEventDetail,
+  WindowResizeEventDetail
+} from "./events.ts";
 
 interface WindowState {
   handle: WindowHandle;
@@ -125,6 +131,10 @@ export class WindowManager extends EventTarget {
 
     target.orderIdx = 0;
     this.applyZIndices();
+
+    this.dispatchEvent(new CustomEvent<WindowFocusEventDetail>("window-focused", {
+      detail: {handle},
+    }));
   }
 
   public closeWindow(handle: WindowHandle): void {
@@ -140,6 +150,10 @@ export class WindowManager extends EventTarget {
         state.orderIdx -= 1;
       }
     }
+
+    this.dispatchEvent(new CustomEvent<WindowCloseEventDetail>("window-closed", {
+      detail: {handle},
+    }));
   }
 
   public getWindowSurface(handle: WindowHandle): HTMLDivElement | null {
@@ -261,6 +275,15 @@ function createDragState(wm: WindowManager): DragState {
   }
 
   function onMouseUp(): void {
+    if (activeHandle) {
+      const rect = wm.getWindowRect(activeHandle);
+      if (rect) {
+        wm.dispatchEvent(new CustomEvent<WindowMoveEventDetail>("window-moved", {
+          detail: {handle: activeHandle, x: rect.x, y: rect.y},
+        }));
+      }
+    }
+
     activeHandle = null;
     document.removeEventListener("mousemove", onMouseMove);
     document.removeEventListener("mouseup", onMouseUp);
@@ -357,6 +380,15 @@ function createResizeState(wm: WindowManager): ResizeState {
   }
 
   function onMouseUp(): void {
+    if (activeHandle) {
+      const rect = wm.getWindowRect(activeHandle);
+      if (rect) {
+        wm.dispatchEvent(new CustomEvent<WindowResizeEventDetail>("window-resized", {
+          detail: {handle: activeHandle, x: rect.x, y: rect.y, width: rect.width, height: rect.height},
+        }));
+      }
+    }
+
     activeHandle = null;
     activeDirection = null;
     document.removeEventListener("mousemove", onMouseMove);

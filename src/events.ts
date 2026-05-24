@@ -23,8 +23,8 @@ export interface WindowResizeEventDetail {
 }
 
 export interface WindowManagerEventMap {
-  "window-close": CustomEvent<WindowCloseEventDetail>;
-  "window-focus": CustomEvent<WindowFocusEventDetail>;
-  "window-move": CustomEvent<WindowMoveEventDetail>;
-  "window-resize": CustomEvent<WindowResizeEventDetail>;
+  "window-closed": CustomEvent<WindowCloseEventDetail>;
+  "window-focused": CustomEvent<WindowFocusEventDetail>;
+  "window-moved": CustomEvent<WindowMoveEventDetail>;
+  "window-resized": CustomEvent<WindowResizeEventDetail>;
 }

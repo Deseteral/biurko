@@ -8,10 +8,10 @@ desktopElement.appendChild(desktopButtonsContainerElement);
 
 const wm = new WindowManager(desktopElement);
 
-wm.addEventListener("window-close", (e) => console.log("window-close", e.detail));
-wm.addEventListener("window-focus", (e) => console.log("window-focus", e.detail));
-wm.addEventListener("window-move", (e) => console.log("window-move", e.detail));
-wm.addEventListener("window-resize", (e) => console.log("window-resize", e.detail));
+wm.addEventListener("window-closed", (e) => console.log("window-closed", e.detail));
+wm.addEventListener("window-focused", (e) => console.log("window-focused", e.detail));
+wm.addEventListener("window-moved", (e) => console.log("window-moved", e.detail));
+wm.addEventListener("window-resized", (e) => console.log("window-resized", e.detail));
 
 function openTestWindow(title: string, x: number, y: number): void {
   const handle = wm.createWindow({title, x, y, width: 320, height: 240, minWidth: 160, minHeight: 120});
