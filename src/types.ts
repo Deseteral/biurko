@@ -16,3 +16,6 @@ export interface WindowRect {
   width: number;
   height: number;
 }
+
+export const RESIZE_DIRECTIONS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
+export type ResizeDirection = typeof RESIZE_DIRECTIONS[number];

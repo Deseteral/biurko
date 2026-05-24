@@ -1,12 +1,13 @@
-import type {WindowHandle, WindowOptions, WindowRect} from "./types.ts";
+import {RESIZE_DIRECTIONS, type WindowHandle, type WindowOptions, type WindowRect} from "./types.ts";
 import type {
   WindowCloseEventDetail,
   WindowFocusEventDetail,
   WindowManagerEventMap,
-  WindowMoveEventDetail,
   WindowOpenedEventDetail,
-  WindowResizeEventDetail
 } from "./events.ts";
+import {createDragState, type DragState} from "./drag-state.ts";
+import {createResizeState, type ResizeState} from "./resize-state.ts";
+import {applyResizeRegionStyles} from "./resize-region-styling.ts";
 
 interface WindowState {
   handle: WindowHandle;
@@ -17,9 +18,6 @@ interface WindowState {
   minHeight: number;
   orderIdx: number;
 }
-
-const RESIZE_DIRECTIONS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
-type ResizeDirection = typeof RESIZE_DIRECTIONS[number];
 
 const DEFAULT_RESIZE_REGION_SIZE = 6;
 
@@ -267,216 +265,6 @@ export class WindowManager extends EventTarget {
     options?: boolean | EventListenerOptions,
   ): void {
     super.removeEventListener(type, listener as EventListener, options);
-  }
-}
-
-// Since only one window can be actively dragged at a time, drag state is a singleton per manager.
-interface DragState {
-  start(handle: WindowHandle, clientX: number, clientY: number): void;
-}
-
-function createDragState(wm: WindowManager): DragState {
-  let activeHandle: WindowHandle | null = null;
-  let offsetX = 0;
-  let offsetY = 0;
-
-  function onMouseMove(e: MouseEvent): void {
-    if (!activeHandle) return;
-
-    const newX = e.clientX - offsetX;
-    const newY = e.clientY - offsetY;
-    wm.moveWindow(activeHandle, newX, newY);
-  }
-
-  function onMouseUp(): void {
-    if (activeHandle) {
-      const rect = wm.getWindowRect(activeHandle);
-      if (rect) {
-        wm.dispatchEvent(new CustomEvent<WindowMoveEventDetail>("window-moved", {
-          detail: {handle: activeHandle, x: rect.x, y: rect.y},
-        }));
-      }
-    }
-
-    activeHandle = null;
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", onMouseUp);
-  }
-
-  return {
-    start(handle: WindowHandle, clientX: number, clientY: number): void {
-      const rect = wm.getWindowRect(handle);
-      if (!rect) return;
-
-      activeHandle = handle;
-      offsetX = clientX - rect.x;
-      offsetY = clientY - rect.y;
-
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
-    },
-  };
-}
-
-
-interface ResizeState {
-  start(handle: WindowHandle, direction: ResizeDirection, clientX: number, clientY: number): void;
-}
-
-function createResizeState(wm: WindowManager): ResizeState {
-  let activeHandle: WindowHandle | null = null;
-  let activeDirection: ResizeDirection | null = null;
-  let startX = 0;
-  let startY = 0;
-  let startRect: WindowRect = {x: 0, y: 0, width: 0, height: 0};
-  let minWidth = 0;
-  let minHeight = 0;
-
-  function start(handle: WindowHandle, direction: ResizeDirection, clientX: number, clientY: number): void {
-    const rect = wm.getWindowRect(handle);
-    if (!rect) return;
-
-    const minSize = wm.getMinSize(handle);
-    if (!minSize) return;
-
-    activeHandle = handle;
-    activeDirection = direction;
-    startX = clientX;
-    startY = clientY;
-    startRect = {...rect};
-    minWidth = minSize.minWidth;
-    minHeight = minSize.minHeight;
-
-    wm.getDesktopElement().style.userSelect = "none";
-
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-  }
-
-  function onMouseMove(e: MouseEvent): void {
-    if (!activeHandle || !activeDirection) return;
-
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-
-    let newX = startRect.x;
-    let newY = startRect.y;
-    let newWidth = startRect.width;
-    let newHeight = startRect.height;
-
-    // Horizontal component.
-    if (activeDirection.includes("e")) { // Grow in x-axis.
-      newWidth = Math.max(minWidth, startRect.width + dx);
-    } else if (activeDirection.includes("w")) { // Shrink in x-axis.
-      const proposedWidth = startRect.width - dx;
-      if (proposedWidth >= minWidth) {
-        newWidth = proposedWidth;
-        newX = startRect.x + dx;
-      } else {
-        newWidth = minWidth;
-        newX = startRect.x + (startRect.width - minWidth);
-      }
-    }
-
-    // Vertical component.
-    if (activeDirection.includes("s")) { // Grow in y-axis.
-      newHeight = Math.max(minHeight, startRect.height + dy);
-    } else if (activeDirection.includes("n")) { // Shrink in y-axis.
-      const proposedHeight = startRect.height - dy;
-      if (proposedHeight >= minHeight) {
-        newHeight = proposedHeight;
-        newY = startRect.y + dy;
-      } else {
-        newHeight = minHeight;
-        newY = startRect.y + (startRect.height - minHeight);
-      }
-    }
-
-    wm.resizeWindow(activeHandle, newX, newY, newWidth, newHeight);
-  }
-
-  function onMouseUp(): void {
-    if (activeHandle) {
-      const rect = wm.getWindowRect(activeHandle);
-      if (rect) {
-        wm.dispatchEvent(new CustomEvent<WindowResizeEventDetail>("window-resized", {
-          detail: {handle: activeHandle, x: rect.x, y: rect.y, width: rect.width, height: rect.height},
-        }));
-      }
-    }
-
-    activeHandle = null;
-    activeDirection = null;
-    wm.getDesktopElement().style.userSelect = "";
-    document.removeEventListener("mousemove", onMouseMove);
-    document.removeEventListener("mouseup", onMouseUp);
-  }
-
-  return {
-    start,
-  };
-}
-
-function applyResizeRegionStyles(el: HTMLDivElement, direction: ResizeDirection, regionSize: number): void {
-  el.style.position = "absolute";
-  el.style.zIndex = "1";
-  el.style.cursor = `${direction}-resize`;
-
-  // Handles are regionSize inside + regionSize outside the window edge (2 * regionSize total).
-  const size = regionSize * 2;
-  const offset = `-${regionSize}px`;
-  const cornerSize = `${size}px`;
-  const origin = `${regionSize}px`;
-
-  switch (direction) {
-    case "n":
-      el.style.top = offset;
-      el.style.left = origin;
-      el.style.right = origin;
-      el.style.height = `${size}px`;
-      break;
-    case "s":
-      el.style.bottom = offset;
-      el.style.left = origin;
-      el.style.right = origin;
-      el.style.height = `${size}px`;
-      break;
-    case "e":
-      el.style.right = offset;
-      el.style.top = origin;
-      el.style.bottom = origin;
-      el.style.width = `${size}px`;
-      break;
-    case "w":
-      el.style.left = offset;
-      el.style.top = origin;
-      el.style.bottom = origin;
-      el.style.width = `${size}px`;
-      break;
-    case "ne":
-      el.style.top = offset;
-      el.style.right = offset;
-      el.style.width = cornerSize;
-      el.style.height = cornerSize;
-      break;
-    case "nw":
-      el.style.top = offset;
-      el.style.left = offset;
-      el.style.width = cornerSize;
-      el.style.height = cornerSize;
-      break;
-    case "se":
-      el.style.bottom = offset;
-      el.style.right = offset;
-      el.style.width = cornerSize;
-      el.style.height = cornerSize;
-      break;
-    case "sw":
-      el.style.bottom = offset;
-      el.style.left = offset;
-      el.style.width = cornerSize;
-      el.style.height = cornerSize;
-      break;
   }
 }
 
