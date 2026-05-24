@@ -49,3 +49,15 @@ html, body {
   flex: 1;
   padding: 8px;
 }
+
+.debug-resize [data-resize-direction] {
+  background: red;
+  opacity: 0.5;
+}
+
+.debug-resize [data-resize-direction="ne"],
+.debug-resize [data-resize-direction="nw"],
+.debug-resize [data-resize-direction="se"],
+.debug-resize [data-resize-direction="sw"] {
+  background: orange;
+}

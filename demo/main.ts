@@ -34,6 +34,11 @@ openTestWindowBtn.textContent = "Open test window"
 openTestWindowBtn.addEventListener("click", () => openTestWindow("Test window", 10, 10));
 desktopButtonsContainerElement.appendChild(openTestWindowBtn);
 
+const debugResizeBtn = document.createElement('button');
+debugResizeBtn.textContent = "Toggle debug resize regions visualization";
+debugResizeBtn.addEventListener("click", () => document.body.classList.toggle("debug-resize"));
+desktopButtonsContainerElement.appendChild(debugResizeBtn);
+
 openTestWindow("Window A", 60, 60);
 openTestWindow("Window B", 200, 140);
 openTestWindow("Window C", 400, 80);
