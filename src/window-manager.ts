@@ -191,6 +191,10 @@ export class WindowManager extends EventTarget {
     return {minWidth: windowState.minWidth, minHeight: windowState.minHeight};
   }
 
+  public getDesktopElement(): HTMLElement {
+    return this.desktopElement;
+  }
+
   public moveWindow(handle: WindowHandle, x: number, y: number): void {
     const windowState = this.windows.get(handle);
     if (!windowState) return;
@@ -343,6 +347,8 @@ function createResizeState(wm: WindowManager): ResizeState {
     minWidth = minSize.minWidth;
     minHeight = minSize.minHeight;
 
+    wm.getDesktopElement().style.userSelect = "none";
+
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
   }
@@ -401,6 +407,7 @@ function createResizeState(wm: WindowManager): ResizeState {
 
     activeHandle = null;
     activeDirection = null;
+    wm.getDesktopElement().style.userSelect = "";
     document.removeEventListener("mousemove", onMouseMove);
     document.removeEventListener("mouseup", onMouseUp);
   }
