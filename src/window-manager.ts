@@ -4,6 +4,7 @@ import type {
   WindowFocusEventDetail,
   WindowManagerEventMap,
   WindowMoveEventDetail,
+  WindowOpenedEventDetail,
   WindowResizeEventDetail
 } from "./events.ts";
 
@@ -113,6 +114,10 @@ export class WindowManager extends EventTarget {
     });
 
     this.applyZIndices();
+
+    this.dispatchEvent(new CustomEvent<WindowOpenedEventDetail>("window-opened", {
+      detail: {handle},
+    }));
 
     return handle;
   }

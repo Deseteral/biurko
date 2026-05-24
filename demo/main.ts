@@ -8,6 +8,7 @@ desktopElement.appendChild(desktopButtonsContainerElement);
 
 const wm = new WindowManager(desktopElement);
 
+wm.addEventListener("window-opened", (e) => console.log("window-opened", e.detail));
 wm.addEventListener("window-closed", (e) => console.log("window-closed", e.detail));
 wm.addEventListener("window-focused", (e) => console.log("window-focused", e.detail));
 wm.addEventListener("window-moved", (e) => console.log("window-moved", e.detail));
