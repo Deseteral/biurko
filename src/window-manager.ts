@@ -154,6 +154,12 @@ export class WindowManager extends EventTarget {
     };
   }
 
+  public getMinSize(handle: WindowHandle): { minWidth: number; minHeight: number } | null {
+    const windowState = this.windows.get(handle);
+    if (!windowState) return null;
+    return {minWidth: windowState.minWidth, minHeight: windowState.minHeight};
+  }
+
   public moveWindow(handle: WindowHandle, x: number, y: number): void {
     const windowState = this.windows.get(handle);
     if (!windowState) return;
