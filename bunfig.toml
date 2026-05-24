@@ -1,0 +1,6 @@
+[install]
+exact = true
+ignoreScripts = true
+minimumReleaseAge = 2678400 # One month.
+
+telemetry = false
