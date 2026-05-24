@@ -41,6 +41,13 @@ export class WindowManager extends EventTarget {
     element.style.width = `${options.width}px`;
     element.style.height = `${options.height}px`;
 
+    const content = document.createElement("div");
+    content.classList.add("biurko-window-content");
+    content.style.position = "relative";
+    content.style.width = "100%";
+    content.style.height = "100%";
+    content.style.overflow = "hidden";
+
     const titleBar = document.createElement("div");
     titleBar.classList.add("biurko-title-bar");
 
@@ -49,7 +56,13 @@ export class WindowManager extends EventTarget {
     titleSpan.textContent = options.title;
     titleBar.appendChild(titleSpan);
 
-    element.appendChild(titleBar);
+    content.appendChild(titleBar);
+
+    const surface = document.createElement("div");
+    surface.classList.add("biurko-surface");
+    content.appendChild(surface);
+
+    element.appendChild(content);
 
     for (const direction of RESIZE_DIRECTIONS) {
       const resizeRegion = document.createElement("div");
@@ -58,10 +71,6 @@ export class WindowManager extends EventTarget {
 
       element.appendChild(resizeRegion);
     }
-
-    const surface = document.createElement("div");
-    surface.classList.add("biurko-surface");
-    element.appendChild(surface);
 
     this.desktopElement.appendChild(element);
 
