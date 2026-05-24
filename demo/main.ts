@@ -1,6 +1,10 @@
 import {WindowManager} from "../src/index.ts";
 
 const desktopElement = document.getElementById("desktop")!;
+const desktopButtonsContainerElement = document.createElement('div');
+desktopButtonsContainerElement.classList.add('desktop-button-list')
+desktopButtonsContainerElement.textContent = 'Desktop'
+desktopElement.appendChild(desktopButtonsContainerElement);
 
 const wm = new WindowManager(desktopElement);
 
@@ -28,7 +32,7 @@ function openTestWindow(title: string, x: number, y: number): void {
 const openTestWindowBtn = document.createElement('button');
 openTestWindowBtn.textContent = "Open test window"
 openTestWindowBtn.addEventListener("click", () => openTestWindow("Test window", 10, 10));
-desktopElement.appendChild(openTestWindowBtn);
+desktopButtonsContainerElement.appendChild(openTestWindowBtn);
 
 openTestWindow("Window A", 60, 60);
 openTestWindow("Window B", 200, 140);

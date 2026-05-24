@@ -8,6 +8,8 @@ html, body {
   overflow: hidden;
   font-family: sans-serif;
   font-size: 14px;
+  margin: 0;
+  padding: 0;
 }
 
 #desktop {
@@ -16,12 +18,18 @@ html, body {
   position: relative;
 }
 
+.desktop-button-list {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
 .biurko-window {
   display: flex;
   flex-direction: column;
   border: 1px solid black;
   background: lightgray;
-  overflow: hidden;
 }
 
 .biurko-title-bar {
@@ -29,12 +37,7 @@ html, body {
   align-items: center;
   padding: 6px 10px;
   background: cornflowerblue;
-  cursor: grab;
   user-select: none;
-}
-
-.biurko-title-bar:active {
-  cursor: grabbing;
 }
 
 .biurko-title {
