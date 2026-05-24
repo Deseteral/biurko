@@ -25,7 +25,7 @@ html, body {
   padding: 16px;
 }
 
-.biurko-window {
+.biurko-window-content {
   display: flex;
   flex-direction: column;
   border: 1px solid black;
