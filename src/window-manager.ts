@@ -169,7 +169,20 @@ export class WindowManager extends EventTarget {
 
     el.style.left = `${clampedX}px`;
     el.style.top = `${clampedY}px`;
+  }
 
+  public resizeWindow(handle: WindowHandle, x: number, y: number, width: number, height: number): void {
+    const windowState = this.windows.get(handle);
+    if (!windowState) return;
+
+    const clampedWidth = Math.max(windowState.minWidth, width);
+    const clampedHeight = Math.max(windowState.minHeight, height);
+
+    const el = windowState.element;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    el.style.width = `${clampedWidth}px`;
+    el.style.height = `${clampedHeight}px`;
   }
 
   private applyZIndices(): void {
