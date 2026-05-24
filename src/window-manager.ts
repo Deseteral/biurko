@@ -21,19 +21,24 @@ interface WindowState {
 const RESIZE_DIRECTIONS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
 type ResizeDirection = typeof RESIZE_DIRECTIONS[number];
 
-// TODO: Make this user customizable.
-const RESIZE_HANDLE_SIZE = 6;
+const DEFAULT_RESIZE_REGION_SIZE = 6;
+
+export interface WindowManagerOptions {
+  resizeRegionSize?: number;
+}
 
 export class WindowManager extends EventTarget {
   private readonly desktopElement: HTMLElement;
   private readonly windows: Map<WindowHandle, WindowState> = new Map();
   private readonly dragState: DragState;
   private readonly resizeState: ResizeState;
+  private readonly resizeRegionSize: number;
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, options?: WindowManagerOptions) {
     super();
     this.desktopElement = container;
     this.desktopElement.classList.add("biurko-desktop");
+    this.resizeRegionSize = options?.resizeRegionSize ?? DEFAULT_RESIZE_REGION_SIZE;
     this.dragState = createDragState(this);
     this.resizeState = createResizeState(this);
   }
@@ -76,7 +81,7 @@ export class WindowManager extends EventTarget {
     for (const direction of RESIZE_DIRECTIONS) {
       const resizeRegion = document.createElement("div");
       resizeRegion.dataset["resizeDirection"] = direction;
-      applyResizeHandleStyles(resizeRegion, direction);
+      applyResizeRegionStyles(resizeRegion, direction, this.resizeRegionSize);
 
       resizeRegion.addEventListener("mousedown", (e: MouseEvent): void => {
         e.stopPropagation();
@@ -405,16 +410,16 @@ function createResizeState(wm: WindowManager): ResizeState {
   };
 }
 
-function applyResizeHandleStyles(el: HTMLDivElement, direction: ResizeDirection): void {
+function applyResizeRegionStyles(el: HTMLDivElement, direction: ResizeDirection, regionSize: number): void {
   el.style.position = "absolute";
   el.style.zIndex = "1";
   el.style.cursor = `${direction}-resize`;
 
-  // Handles are HANDLE_SIZE inside + HANDLE_SIZE outside the window edge (2 * HANDLE_SIZE total).
-  const size = RESIZE_HANDLE_SIZE * 2;
-  const offset = `-${RESIZE_HANDLE_SIZE}px`;
+  // Handles are regionSize inside + regionSize outside the window edge (2 * regionSize total).
+  const size = regionSize * 2;
+  const offset = `-${regionSize}px`;
   const cornerSize = `${size}px`;
-  const origin = `${RESIZE_HANDLE_SIZE}px`;
+  const origin = `${regionSize}px`;
 
   switch (direction) {
     case "n":
