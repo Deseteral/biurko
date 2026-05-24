@@ -12,6 +12,10 @@ interface WindowState {
 }
 
 const RESIZE_DIRECTIONS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
+type ResizeDirection = typeof RESIZE_DIRECTIONS[number];
+
+// TODO: Make this user customizable.
+const RESIZE_HANDLE_SIZE = 6;
 
 export class WindowManager extends EventTarget {
   private readonly desktopElement: HTMLElement;
@@ -48,9 +52,11 @@ export class WindowManager extends EventTarget {
     element.appendChild(titleBar);
 
     for (const direction of RESIZE_DIRECTIONS) {
-      const resizeHandle = document.createElement("div");
-      resizeHandle.dataset["resizeDirection"] = direction;
-      element.appendChild(resizeHandle);
+      const resizeRegion = document.createElement("div");
+      resizeRegion.dataset["resizeDirection"] = direction;
+      applyResizeHandleStyles(resizeRegion, direction);
+
+      element.appendChild(resizeRegion);
     }
 
     const surface = document.createElement("div");
@@ -238,6 +244,69 @@ function createDragState(wm: WindowManager): DragState {
       document.addEventListener("mouseup", onMouseUp);
     },
   };
+}
+
+function applyResizeHandleStyles(el: HTMLDivElement, direction: ResizeDirection): void {
+  el.style.position = "absolute";
+  el.style.zIndex = "1";
+  el.style.cursor = `${direction}-resize`;
+
+  // Handles are HANDLE_SIZE inside + HANDLE_SIZE outside the window edge (2 * HANDLE_SIZE total).
+  const size = RESIZE_HANDLE_SIZE * 2;
+  const offset = `-${RESIZE_HANDLE_SIZE}px`;
+  const cornerSize = `${size}px`;
+  const origin = `${RESIZE_HANDLE_SIZE}px`;
+
+  switch (direction) {
+    case "n":
+      el.style.top = offset;
+      el.style.left = origin;
+      el.style.right = origin;
+      el.style.height = `${size}px`;
+      break;
+    case "s":
+      el.style.bottom = offset;
+      el.style.left = origin;
+      el.style.right = origin;
+      el.style.height = `${size}px`;
+      break;
+    case "e":
+      el.style.right = offset;
+      el.style.top = origin;
+      el.style.bottom = origin;
+      el.style.width = `${size}px`;
+      break;
+    case "w":
+      el.style.left = offset;
+      el.style.top = origin;
+      el.style.bottom = origin;
+      el.style.width = `${size}px`;
+      break;
+    case "ne":
+      el.style.top = offset;
+      el.style.right = offset;
+      el.style.width = cornerSize;
+      el.style.height = cornerSize;
+      break;
+    case "nw":
+      el.style.top = offset;
+      el.style.left = offset;
+      el.style.width = cornerSize;
+      el.style.height = cornerSize;
+      break;
+    case "se":
+      el.style.bottom = offset;
+      el.style.right = offset;
+      el.style.width = cornerSize;
+      el.style.height = cornerSize;
+      break;
+    case "sw":
+      el.style.bottom = offset;
+      el.style.left = offset;
+      el.style.width = cornerSize;
+      el.style.height = cornerSize;
+      break;
+  }
 }
 
 function parsePx(value: string): number {
