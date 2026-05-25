@@ -14,6 +14,7 @@ interface WindowState {
   element: HTMLDivElement;
   titleBar: HTMLDivElement;
   surface: HTMLDivElement;
+  title: string;
   minWidth: number;
   minHeight: number;
   orderIdx: number;
@@ -101,6 +102,7 @@ export class WindowManager extends EventTarget {
       element,
       titleBar,
       surface,
+      title: options.title,
       minWidth: options.minWidth ?? 0,
       minHeight: options.minHeight ?? 0,
       orderIdx: 0,
@@ -168,6 +170,18 @@ export class WindowManager extends EventTarget {
     const windowState = this.windows.get(handle);
     if (!windowState) return null;
     return windowState.surface;
+  }
+
+  public getWindowTitle(handle: WindowHandle): string | null {
+    const windowState = this.windows.get(handle);
+    if (!windowState) return null;
+    return windowState.title;
+  }
+
+  public setWindowTitle(handle: WindowHandle, title: string): void {
+    const windowState = this.windows.get(handle);
+    if (!windowState) return;
+    windowState.title = title;
   }
 
   public getWindowRect(handle: WindowHandle): WindowRect | null {
