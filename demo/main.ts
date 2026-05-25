@@ -40,6 +40,11 @@ debugResizeBtn.textContent = "Toggle debug resize regions visualization";
 debugResizeBtn.addEventListener("click", () => document.body.classList.toggle("debug-resize"));
 desktopButtonsContainerElement.appendChild(debugResizeBtn);
 
+const reactDemoLink = document.createElement('a');
+reactDemoLink.href = "/react.html";
+reactDemoLink.textContent = "React demo →";
+desktopButtonsContainerElement.appendChild(reactDemoLink);
+
 openTestWindow("Window A", 60, 60);
 openTestWindow("Window B", 200, 140);
 openTestWindow("Window C", 400, 80);
