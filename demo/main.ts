@@ -19,6 +19,11 @@ function openTestWindow(title: string, x: number, y: number): void {
 
   const surface = wm.getWindowSurface(handle)!;
 
+  const titleBar = document.createElement("div");
+  titleBar.classList.add("title-bar");
+  titleBar.dataset["biurkoDragRegion"] = "";
+  titleBar.textContent = title;
+
   const closeBtn = document.createElement("button");
   closeBtn.textContent = "Close";
   closeBtn.addEventListener("click", () => wm.closeWindow(handle));
@@ -26,6 +31,7 @@ function openTestWindow(title: string, x: number, y: number): void {
   const info = document.createElement("div");
   info.textContent = `Handle: ${handle}`;
 
+  surface.appendChild(titleBar);
   surface.appendChild(info);
   surface.appendChild(closeBtn);
 }

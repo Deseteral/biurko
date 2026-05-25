@@ -12,7 +12,6 @@ import {applyResizeRegionStyles} from "./resize-region-styling.ts";
 interface WindowState {
   handle: WindowHandle;
   element: HTMLDivElement;
-  titleBar: HTMLDivElement;
   surface: HTMLDivElement;
   title: string;
   minWidth: number;
@@ -61,16 +60,6 @@ export class WindowManager extends EventTarget {
     content.style.height = "100%";
     content.style.overflow = "hidden";
 
-    const titleBar = document.createElement("div");
-    titleBar.classList.add("biurko-title-bar");
-
-    const titleSpan = document.createElement("span");
-    titleSpan.classList.add("biurko-title");
-    titleSpan.textContent = options.title;
-    titleBar.appendChild(titleSpan);
-
-    content.appendChild(titleBar);
-
     const surface = document.createElement("div");
     surface.classList.add("biurko-surface");
     content.appendChild(surface);
@@ -100,7 +89,6 @@ export class WindowManager extends EventTarget {
     const state: WindowState = {
       handle,
       element,
-      titleBar,
       surface,
       title: options.title,
       minWidth: options.minWidth ?? 0,
@@ -112,10 +100,6 @@ export class WindowManager extends EventTarget {
 
     element.addEventListener("mousedown", (): void => {
       this.focusWindow(handle);
-    });
-
-    titleBar.addEventListener("mousedown", (e: MouseEvent): void => {
-      this.dragState.start(handle, e.clientX, e.clientY);
     });
 
     this.applyZIndices();
