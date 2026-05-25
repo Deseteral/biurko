@@ -205,15 +205,10 @@ export class WindowManager extends EventTarget {
 
     const el = windowState.element;
     const width = parsePx(el.style.width);
-    const height = parsePx(el.style.height);
+    const clampedPosition = this.clampWindowPositionWithinDesktop(x, y, width);
 
-    // Clamp to container bounds.
-    const containerRect = this.desktopElement.getBoundingClientRect();
-    const clampedX = Math.max(0, Math.min(x, containerRect.width - width));
-    const clampedY = Math.max(0, Math.min(y, containerRect.height - height));
-
-    el.style.left = `${clampedX}px`;
-    el.style.top = `${clampedY}px`;
+    el.style.left = `${clampedPosition.x}px`;
+    el.style.top = `${clampedPosition.y}px`;
   }
 
   public resizeWindow(handle: WindowHandle, x: number, y: number, width: number, height: number): void {
@@ -222,12 +217,23 @@ export class WindowManager extends EventTarget {
 
     const clampedWidth = Math.max(windowState.minWidth, width);
     const clampedHeight = Math.max(windowState.minHeight, height);
+    const clampedPosition = this.clampWindowPositionWithinDesktop(x, y, clampedWidth);
 
     const el = windowState.element;
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
+    el.style.left = `${clampedPosition.x}px`;
+    el.style.top = `${clampedPosition.y}px`;
     el.style.width = `${clampedWidth}px`;
     el.style.height = `${clampedHeight}px`;
+  }
+
+  /** Clamp position so that at least `margin` pixels of the window remain visible within the container. */
+  private clampWindowPositionWithinDesktop(x: number, y: number, windowWidth: number): { x: number; y: number } {
+    const containerRect = this.desktopElement.getBoundingClientRect();
+    const margin = this.resizeRegionSize * 2;
+    return {
+      x: Math.max(margin - windowWidth, Math.min(x, containerRect.width - margin)),
+      y: Math.max(0, Math.min(y, containerRect.height - margin)),
+    };
   }
 
   private applyZIndices(): void {
