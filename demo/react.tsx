@@ -15,6 +15,7 @@ function WindowContent({ onClose }: { onClose: () => void }) {
 
   return (
     <div>
+      <div data-biurko-drag-region className="title-bar">Counter</div>
       <div>Count: {count}</div>
       <button onClick={() => setCount((c) => c + 1)}>Increment</button>
       <button onClick={() => setCount(0)}>Reset</button>

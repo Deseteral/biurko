@@ -14,6 +14,7 @@ interface WindowState {
   element: HTMLDivElement;
   surface: HTMLDivElement;
   title: string;
+  dragRegionSelector: string;
   minWidth: number;
   minHeight: number;
   orderIdx: number;
@@ -86,11 +87,14 @@ export class WindowManager extends EventTarget {
       state.orderIdx += 1;
     }
 
+    const dragRegionSelector = options.dragRegionSelector ?? "[data-biurko-drag-region]";
+
     const state: WindowState = {
       handle,
       element,
       surface,
       title: options.title,
+      dragRegionSelector,
       minWidth: options.minWidth ?? 0,
       minHeight: options.minHeight ?? 0,
       orderIdx: 0,
@@ -98,7 +102,11 @@ export class WindowManager extends EventTarget {
 
     this.windows.set(handle, state);
 
-    element.addEventListener("mousedown", (): void => {
+    element.addEventListener("mousedown", (e: MouseEvent): void => {
+      const target = e.target as Element | null;
+      if (target?.closest(dragRegionSelector)) {
+        this.dragState.start(handle, e.clientX, e.clientY);
+      }
       this.focusWindow(handle);
     });
 

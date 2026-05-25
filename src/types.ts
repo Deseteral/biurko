@@ -8,6 +8,7 @@ export interface WindowOptions {
   height: number;
   minWidth?: number;
   minHeight?: number;
+  dragRegionSelector?: string;
 }
 
 export interface WindowRect {
