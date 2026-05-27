@@ -48,7 +48,6 @@ export class WindowManager<TData = void> extends EventTarget {
     const data = args[0] as TData | undefined;
 
     const element = document.createElement("div");
-    element.classList.add("biurko-window");
     element.dataset["windowHandle"] = handle;
     element.style.position = "absolute";
     element.style.left = `${options.x}px`;
@@ -56,18 +55,12 @@ export class WindowManager<TData = void> extends EventTarget {
     element.style.width = `${options.width}px`;
     element.style.height = `${options.height}px`;
 
-    const content = document.createElement("div");
-    content.classList.add("biurko-window-content");
-    content.style.position = "relative";
-    content.style.width = "100%";
-    content.style.height = "100%";
-    content.style.overflow = "hidden";
-
     const surface = document.createElement("div");
     surface.classList.add("biurko-surface");
-    content.appendChild(surface);
+    surface.style.height = "100%";
+    surface.style.overflow = "hidden";
 
-    element.appendChild(content);
+    element.appendChild(surface);
 
     for (const direction of RESIZE_DIRECTIONS) {
       const resizeRegion = document.createElement("div");

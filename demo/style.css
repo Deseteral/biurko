@@ -54,9 +54,6 @@ body {
 
 .biurko-surface {
   flex: 1;
-}
-
-.biurko-window-content {
   display: flex;
   flex-direction: column;
   border: 1px solid black;
