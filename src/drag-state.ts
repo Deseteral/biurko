@@ -6,7 +6,7 @@ export interface DragState {
   start(handle: WindowHandle, clientX: number, clientY: number): void;
 }
 
-export function createDragState(wm: WindowManager): DragState {
+export function createDragState(wm: WindowManager<any>): DragState {
   let activeHandle: WindowHandle | null = null;
   let offsetX = 0;
   let offsetY = 0;

@@ -6,7 +6,7 @@ export interface ResizeState {
   start(handle: WindowHandle, direction: ResizeDirection, clientX: number, clientY: number): void;
 }
 
-export function createResizeState(wm: WindowManager): ResizeState {
+export function createResizeState(wm: WindowManager<any>): ResizeState {
   let activeHandle: WindowHandle | null = null;
   let activeDirection: ResizeDirection | null = null;
   let startX = 0;

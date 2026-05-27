@@ -9,11 +9,12 @@ import {createDragState, type DragState} from "./drag-state.ts";
 import {createResizeState, type ResizeState} from "./resize-state.ts";
 import {applyResizeRegionStyles} from "./resize-region-styling.ts";
 
-interface WindowState {
+interface WindowState<TData> {
   handle: WindowHandle;
   element: HTMLDivElement;
   surface: HTMLDivElement;
   title: string;
+  data: TData | undefined;
   dragRegionSelector: string;
   minWidth: number;
   minHeight: number;
@@ -26,9 +27,9 @@ export interface WindowManagerOptions {
   resizeRegionSize?: number;
 }
 
-export class WindowManager extends EventTarget {
+export class WindowManager<TData = void> extends EventTarget {
   private readonly desktopElement: HTMLElement;
-  private readonly windows: Map<WindowHandle, WindowState> = new Map();
+  private readonly windows: Map<WindowHandle, WindowState<TData>> = new Map();
   private readonly dragState: DragState;
   private readonly resizeState: ResizeState;
   private readonly resizeRegionSize: number;
@@ -42,8 +43,9 @@ export class WindowManager extends EventTarget {
     this.resizeState = createResizeState(this);
   }
 
-  public createWindow(options: WindowOptions): WindowHandle {
+  public createWindow(options: WindowOptions, ...args: TData extends void ? [] : [data: TData]): WindowHandle {
     const handle = crypto.randomUUID() as WindowHandle;
+    const data = args[0] as TData | undefined;
 
     const element = document.createElement("div");
     element.classList.add("biurko-window");
@@ -89,11 +91,12 @@ export class WindowManager extends EventTarget {
 
     const dragRegionSelector = options.dragRegionSelector ?? "[data-biurko-drag-region]";
 
-    const state: WindowState = {
+    const state: WindowState<TData> = {
       handle,
       element,
       surface,
       title: options.title,
+      data,
       dragRegionSelector,
       minWidth: options.minWidth ?? 0,
       minHeight: options.minHeight ?? 0,
@@ -174,6 +177,12 @@ export class WindowManager extends EventTarget {
     const windowState = this.windows.get(handle);
     if (!windowState) return;
     windowState.title = title;
+  }
+
+  public getWindowData(handle: WindowHandle): TData | undefined {
+    const windowState = this.windows.get(handle);
+    if (!windowState) return undefined;
+    return windowState.data;
   }
 
   public getWindowRect(handle: WindowHandle): WindowRect | null {
