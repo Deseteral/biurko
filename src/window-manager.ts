@@ -9,12 +9,12 @@ import {createDragState, type DragState} from "./drag-state.ts";
 import {createResizeState, type ResizeState} from "./resize-state.ts";
 import {applyResizeRegionStyles} from "./resize-region-styling.ts";
 
-interface WindowState<TData> {
+interface WindowState<AttachedDataT> {
   handle: WindowHandle;
   element: HTMLDivElement;
   surface: HTMLDivElement;
   title: string;
-  data: TData | undefined;
+  data: AttachedDataT | undefined;
   dragRegionSelector: string;
   minWidth: number;
   minHeight: number;
@@ -27,9 +27,9 @@ export interface WindowManagerOptions {
   resizeRegionSize?: number;
 }
 
-export class WindowManager<TData = void> extends EventTarget {
+export class WindowManager<AttachedDataT = void> extends EventTarget {
   private readonly desktopElement: HTMLElement;
-  private readonly windows: Map<WindowHandle, WindowState<TData>> = new Map();
+  private readonly windows: Map<WindowHandle, WindowState<AttachedDataT>> = new Map();
   private readonly dragState: DragState;
   private readonly resizeState: ResizeState;
   private readonly resizeRegionSize: number;
@@ -43,9 +43,9 @@ export class WindowManager<TData = void> extends EventTarget {
     this.resizeState = createResizeState(this);
   }
 
-  public createWindow(options: WindowOptions, ...args: TData extends void ? [] : [data: TData]): WindowHandle {
+  public createWindow(options: WindowOptions, ...args: AttachedDataT extends void ? [] : [data: AttachedDataT]): WindowHandle {
     const handle = crypto.randomUUID() as WindowHandle;
-    const data = args[0] as TData | undefined;
+    const data = args[0] as AttachedDataT | undefined;
 
     const element = document.createElement("div");
     element.dataset["windowHandle"] = handle;
@@ -84,7 +84,7 @@ export class WindowManager<TData = void> extends EventTarget {
 
     const dragRegionSelector = options.dragRegionSelector ?? "[data-biurko-drag-region]";
 
-    const state: WindowState<TData> = {
+    const state: WindowState<AttachedDataT> = {
       handle,
       element,
       surface,
@@ -172,7 +172,7 @@ export class WindowManager<TData = void> extends EventTarget {
     windowState.title = title;
   }
 
-  public getWindowData(handle: WindowHandle): TData | undefined {
+  public getWindowData(handle: WindowHandle): AttachedDataT | undefined {
     const windowState = this.windows.get(handle);
     if (!windowState) return undefined;
     return windowState.data;
