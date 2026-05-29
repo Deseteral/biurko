@@ -1,7 +1,7 @@
 import { createSignal, For, Show, type JSX } from 'solid-js';
 import { Portal } from 'solid-js/web';
-import { WindowManager } from '../window-manager.ts';
-import { type WindowHandle } from '../types.ts';
+import { WindowManager } from '../../window-manager.ts';
+import { type WindowHandle } from '../../types.ts';
 import { BiurkoContext, type SolidJsWindowManager } from './biurko-context.ts';
 
 interface WindowEntry {

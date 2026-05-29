@@ -20,7 +20,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
 
-    "jsx": "react"
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js"
   },
   "include": ["src"]
 }

@@ -1,5 +1,5 @@
 import { createContext, type JSX, useContext } from 'solid-js';
-import { type WindowManager } from '../window-manager.ts';
+import { type WindowManager } from '../../window-manager.ts';
 
 export type SolidJsWindowManager = WindowManager<() => JSX.Element>;
 
