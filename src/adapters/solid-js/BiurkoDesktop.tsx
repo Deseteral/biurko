@@ -11,12 +11,36 @@ interface WindowEntry {
   render: () => JSX.Element;
 }
 
+/**
+ * Props for the {@link BiurkoDesktop} component.
+ */
 export interface BiurkoDesktopProps {
+  /** CSS class name applied to the desktop container. */
   class?: string;
+
+  /**
+   * Child components rendered inside the desktop.
+   */
   children: JSX.Element;
+
+  /**
+   * Optional render function to wrap each window's content with custom chrome (title bar, close button, etc.).
+   *
+   * @param handle - The handle of the window being rendered.
+   * @param content - A function that returns the window's content (the render function passed to `createWindow`).
+   * @returns The decorated window content to be portaled into the window surface.
+   */
   renderWindow?: (handle: WindowHandle, content: () => JSX.Element) => JSX.Element;
 }
 
+/**
+ * The root desktop component for the SolidJS adapter.
+ * Initializes a {@link WindowManager} and provides it via SolidJS context. All windows created through
+ * the manager are rendered as SolidJS portals into their respective surface elements.
+ *
+ * Place your application UI (taskbar, menus, controls) as `children` — they will have access to
+ * the window manager through the {@link useWindowManager} function.
+ */
 export function BiurkoDesktop(props: BiurkoDesktopProps) {
   const [windowManager, setWindowManager] = createSignal<SolidJsWindowManager>();
   const [windows, setWindows] = createSignal<WindowEntry[]>([]);

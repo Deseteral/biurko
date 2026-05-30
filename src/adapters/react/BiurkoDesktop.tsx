@@ -10,12 +10,36 @@ interface WindowEntry {
   render: () => ReactNode;
 }
 
+/**
+ * Props for the {@link BiurkoDesktop} component.
+ */
 export interface BiurkoDesktopProps {
+  /** CSS class name applied to the desktop container. */
   className?: string;
+
+  /**
+   * Child components rendered inside the desktop.
+   */
   children: ReactNode;
+
+  /**
+   * Optional render function to wrap each window's content with custom chrome (title bar, close button, etc.).
+   *
+   * @param handle - The handle of the window being rendered.
+   * @param content - A function that returns the window's content (the render function passed to `createWindow`).
+   * @returns The decorated window content to be portaled into the window surface.
+   */
   renderWindow?: (handle: WindowHandle, content: () => ReactNode) => ReactNode;
 }
 
+/**
+ * The root desktop component for the React adapter.
+ * Initializes a {@link WindowManager} and provides it via React context. All windows created through
+ * the manager are rendered as React portals into their respective surface elements.
+ *
+ * Place your application UI (taskbar, menus, controls) as `children` — they will have access to
+ * the window manager through the {@link useWindowManager} hook.
+ */
 export function BiurkoDesktop(props: BiurkoDesktopProps): ReactNode {
   const [windowManager, setWindowManager] = useState<ReactWindowManager | null>(null);
   const [windows, setWindows] = useState<WindowEntry[]>([]);

@@ -1,7 +1,7 @@
-import {RESIZE_DIRECTIONS, type WindowHandle, type WindowOptions, type WindowRect} from "./types.ts";
+import {RESIZE_DIRECTIONS, type WindowHandle, type CreateWindowOptions, type WindowRect} from "./types.ts";
 import type {
-  WindowCloseEventDetail,
-  WindowFocusEventDetail,
+  WindowClosedEventDetail,
+  WindowFocusedEventDetail,
   WindowManagerEventMap,
   WindowOpenedEventDetail,
 } from "./events.ts";
@@ -23,10 +23,25 @@ interface WindowState<AttachedDataT> {
 
 const DEFAULT_RESIZE_REGION_SIZE = 6;
 
+/** Configuration options for the {@link WindowManager} constructor. */
 export interface WindowManagerOptions {
+  /**
+   * Size (in pixels) of the invisible resize hit regions placed around each window edge and corner.
+   * A larger value makes it easier for users to grab the resize handles.
+   *
+   * @defaultValue `6`
+   */
   resizeRegionSize?: number;
 }
 
+/**
+ * Core window management class that handles window lifecycle and actions such as drag, resize, focus, and ordering.
+ *
+ * Dispatches typed events (see {@link WindowManagerEventMap}):
+ *
+ * @typeParam AttachedDataT - Optional data type attached to each window. Use `void` (default) if no
+ *   data is needed.
+ */
 export class WindowManager<AttachedDataT = void> extends EventTarget {
   private readonly desktopElement: HTMLElement;
   private readonly windows: Map<WindowHandle, WindowState<AttachedDataT>> = new Map();
@@ -34,6 +49,14 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
   private readonly resizeState: ResizeState;
   private readonly resizeRegionSize: number;
 
+  /**
+   * Creates a new WindowManager bound to the given container element.
+   * The container acts as the "desktop" area where windows are positioned. A `biurko-desktop` CSS class
+   * is added to it automatically.
+   *
+   * @param container - The DOM element that serves as the desktop area.
+   * @param options - Optional configuration details.
+   */
   constructor(container: HTMLElement, options?: WindowManagerOptions) {
     super();
     this.desktopElement = container;
@@ -43,7 +66,16 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
     this.resizeState = createResizeState(this);
   }
 
-  public createWindow(options: WindowOptions, ...args: AttachedDataT extends void ? [] : [data: AttachedDataT]): WindowHandle {
+  /**
+   * Creates a new window and appends it to the desktop container.
+   * The window is automatically focused (brought to front) upon creation.
+   * Dispatches a `"window-opened"` event.
+   *
+   * @param options - Configuration details (see {@link CreateWindowOptions}).
+   * @param args - If `AttachedDataT` is not `void`, the attached data must be passed as the second argument.
+   * @returns A unique {@link WindowHandle} identifying the created window.
+   */
+  public createWindow(options: CreateWindowOptions, ...args: AttachedDataT extends void ? [] : [data: AttachedDataT]): WindowHandle {
     const handle = crypto.randomUUID() as WindowHandle;
     const data = args[0] as AttachedDataT | undefined;
 
@@ -115,6 +147,13 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
     return handle;
   }
 
+  /**
+   * Brings the specified window to front.
+   * No-op if the window is already focused.
+   * Dispatches a `"window-focused"` event.
+   *
+   * @param handle - The handle of the window to focus.
+   */
   public focusWindow(handle: WindowHandle): void {
     const target = this.windows.get(handle);
     if (!target) return;
@@ -130,11 +169,19 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
     target.orderIdx = 0;
     this.applyZIndices();
 
-    this.dispatchEvent(new CustomEvent<WindowFocusEventDetail>("window-focused", {
+    this.dispatchEvent(new CustomEvent<WindowFocusedEventDetail>("window-focused", {
       detail: {handle},
     }));
   }
 
+  /**
+   * Closes and removes the window from the desktop.
+   * The window's DOM element is removed and its internal state is cleaned up.
+   * Dispatches a `"window-closed"` event.
+   * No-op if the handle is invalid or its window is no longer open.
+   *
+   * @param handle - The handle of the window to close.
+   */
   public closeWindow(handle: WindowHandle): void {
     const windowState = this.windows.get(handle);
     if (!windowState) return;
@@ -149,35 +196,69 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
       }
     }
 
-    this.dispatchEvent(new CustomEvent<WindowCloseEventDetail>("window-closed", {
+    this.dispatchEvent(new CustomEvent<WindowClosedEventDetail>("window-closed", {
       detail: {handle},
     }));
   }
 
+  /**
+   * Returns the surface element (content container) for the given window.
+   * This is the `HTMLDivElement` where you should render your window content.
+   * It has the CSS class `biurko-surface`.
+   *
+   * @param handle - The window handle.
+   * @returns The surface element, or `null` if the handle is invalid.
+   */
   public getWindowSurface(handle: WindowHandle): HTMLDivElement | null {
     const windowState = this.windows.get(handle);
     if (!windowState) return null;
     return windowState.surface;
   }
 
+  /**
+   * Returns the current title of the window.
+   *
+   * @param handle - The window handle.
+   * @returns The title string, or `null` if the handle is invalid.
+   */
   public getWindowTitle(handle: WindowHandle): string | null {
     const windowState = this.windows.get(handle);
     if (!windowState) return null;
     return windowState.title;
   }
 
+  /**
+   * Updates the title of the window.
+   * This only updates the internal state (see {@link getWindowTitle}).
+   *
+   * @param handle - The window handle.
+   * @param title - The new title string.
+   */
   public setWindowTitle(handle: WindowHandle, title: string): void {
     const windowState = this.windows.get(handle);
     if (!windowState) return;
     windowState.title = title;
   }
 
-  public getWindowData(handle: WindowHandle): AttachedDataT | undefined {
+  /**
+   * Returns the attached data for the given window.
+   * The data type is determined by the `AttachedDataT` generic parameter.
+   *
+   * @param handle - The window handle.
+   * @returns The attached data, or `null` if the handle is invalid or no data was provided.
+   */
+  public getWindowData(handle: WindowHandle): AttachedDataT | null {
     const windowState = this.windows.get(handle);
-    if (!windowState) return undefined;
-    return windowState.data;
+    if (!windowState) return null;
+    return windowState.data || null;
   }
 
+  /**
+   * Returns the current position and dimensions of the window.
+   *
+   * @param handle - The window handle.
+   * @returns A {@link WindowRect}, or `null` if the handle is invalid.
+   */
   public getWindowRect(handle: WindowHandle): WindowRect | null {
     const windowState = this.windows.get(handle);
     if (!windowState) return null;
@@ -191,16 +272,34 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
     };
   }
 
+  /**
+   * Returns the minimum size constraints for the window.
+   *
+   * @param handle - The window handle.
+   * @returns An object with `minWidth` and `minHeight`, or `null` if the handle is invalid.
+   */
   public getMinSize(handle: WindowHandle): { minWidth: number; minHeight: number } | null {
     const windowState = this.windows.get(handle);
     if (!windowState) return null;
     return {minWidth: windowState.minWidth, minHeight: windowState.minHeight};
   }
 
+  /**
+   * Returns the container element containing windows that represents the desktop.
+   */
   public getDesktopElement(): HTMLElement {
     return this.desktopElement;
   }
 
+  /**
+   * Move the window to the specified position.
+   * The position is clamped so that at least a small portion of the window remains visible
+   * within the desktop bounds.
+   *
+   * @param handle - The window handle.
+   * @param x - New horizontal position in pixels.
+   * @param y - New vertical position in pixels.
+   */
   public moveWindow(handle: WindowHandle, x: number, y: number): void {
     const windowState = this.windows.get(handle);
     if (!windowState) return;
@@ -213,6 +312,17 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
     el.style.top = `${clampedPosition.y}px`;
   }
 
+  /**
+   * Resizes and repositions the window.
+   * The size is clamped to the minimum constraints (`minWidth`/`minHeight`) and the position
+   * is clamped to keep the window within desktop bounds.
+   *
+   * @param handle - The window handle.
+   * @param x - New horizontal position in pixels.
+   * @param y - New vertical position in pixels.
+   * @param width - New width in pixels (will be clamped to `minWidth`).
+   * @param height - New height in pixels (will be clamped to `minHeight`).
+   */
   public resizeWindow(handle: WindowHandle, x: number, y: number, width: number, height: number): void {
     const windowState = this.windows.get(handle);
     if (!windowState) return;

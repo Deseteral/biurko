@@ -1,6 +1,6 @@
 import type {ResizeDirection, WindowHandle, WindowRect} from "./types.ts";
 import type {WindowManager} from "./window-manager.ts";
-import type {WindowResizeEventDetail} from "./events.ts";
+import type {WindowResizedEventDetail} from "./events.ts";
 
 export interface ResizeState {
   start(handle: WindowHandle, direction: ResizeDirection, clientX: number, clientY: number): void;
@@ -82,7 +82,7 @@ export function createResizeState(wm: WindowManager<any>): ResizeState {
     if (activeHandle) {
       const rect = wm.getWindowRect(activeHandle);
       if (rect) {
-        wm.dispatchEvent(new CustomEvent<WindowResizeEventDetail>("window-resized", {
+        wm.dispatchEvent(new CustomEvent<WindowResizedEventDetail>("window-resized", {
           detail: {handle: activeHandle, x: rect.x, y: rect.y, width: rect.width, height: rect.height},
         }));
       }

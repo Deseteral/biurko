@@ -1,10 +1,10 @@
-export type { WindowHandle, WindowOptions, WindowRect } from "./types.ts";
+export type { WindowHandle, CreateWindowOptions, WindowRect } from "./types.ts";
 export type {
   WindowOpenedEventDetail,
-  WindowCloseEventDetail,
-  WindowFocusEventDetail,
-  WindowMoveEventDetail,
-  WindowResizeEventDetail,
+  WindowClosedEventDetail,
+  WindowFocusedEventDetail,
+  WindowMovedEventDetail,
+  WindowResizedEventDetail,
   WindowManagerEventMap,
 } from "./events.ts";
 export { WindowManager } from "./window-manager.ts";
