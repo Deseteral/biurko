@@ -27,10 +27,11 @@ Use `bun` to install dependencies.
 bun run demo
 ```
 
-This starts a local dev server serving the `demo/` directory. There are two demo apps available:
+This starts a local dev server serving the `demo/` directory. There are three demo apps available:
 
-- `/` — basic vanilla DOM demo.
-- `/react.html` — React integration demo.
+- `/` — vanilla DOM demo
+- `/react.html` — React integration demo
+- `/solid.html` — SolidJS integration demo
 
 ## License
 
