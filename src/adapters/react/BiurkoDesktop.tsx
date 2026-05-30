@@ -1,6 +1,6 @@
 import { type ReactNode, useCallback, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { WindowManager } from '../../window-manager.ts';
+import { WindowManager, type WindowManagerOptions } from '../../window-manager.ts';
 import { type WindowHandle } from '../../types.ts';
 import { BiurkoContext, type ReactWindowManager } from './biurko-context.ts';
 
@@ -21,6 +21,11 @@ export interface BiurkoDesktopProps {
    * Child components rendered inside the desktop.
    */
   children: ReactNode;
+
+  /**
+   * Configuration options passed to the underlying {@link WindowManager}.
+   */
+  options?: WindowManagerOptions;
 
   /**
    * Optional render function to wrap each window's content with custom chrome (title bar, close button, etc.).
@@ -48,7 +53,7 @@ export function BiurkoDesktop(props: BiurkoDesktopProps): ReactNode {
   const initRef = useCallback((el: HTMLDivElement | null): void => {
     if (!el || managerRef.current) return;
 
-    const manager: ReactWindowManager = new WindowManager<() => ReactNode>(el);
+    const manager: ReactWindowManager = new WindowManager<() => ReactNode>(el, props.options);
 
     manager.addEventListener('window-opened', (e) => {
       const { handle } = e.detail;
