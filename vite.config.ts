@@ -9,13 +9,14 @@ export default defineConfig({
       entry: {
         index: resolve(__dirname, "src/index.ts"),
         "adapters/solid-js/index": resolve(__dirname, "src/adapters/solid-js/index.ts"),
+        "adapters/react/index": resolve(__dirname, "src/adapters/react/index.ts"),
       },
       formats: ["es"],
     },
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
-      external: ["solid-js", "solid-js/web"],
+      external: ["solid-js", "solid-js/web", "react", "react-dom", "react/jsx-runtime"],
     },
   },
 });

@@ -10,6 +10,10 @@
     "./adapters/solid-js": {
       "import": "./dist/adapters/solid-js/index.js",
       "types": "./dist/adapters/solid-js/index.d.ts"
+    },
+    "./adapters/react": {
+      "import": "./dist/adapters/react/index.js",
+      "types": "./dist/adapters/react/index.d.ts"
     }
   },
   "files": ["dist"],
@@ -21,10 +25,18 @@
     "demo": "vite dev demo/"
   },
   "peerDependencies": {
-    "solid-js": ">=1.8.0"
+    "solid-js": ">=1.8.0",
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
   },
   "peerDependenciesMeta": {
     "solid-js": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
       "optional": true
     }
   },
