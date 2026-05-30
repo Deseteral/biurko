@@ -1,4 +1,10 @@
-import {RESIZE_DIRECTIONS, type WindowHandle, type CreateWindowOptions, type WindowRect} from "./types.ts";
+import {
+  type CreateWindowOptions,
+  RESIZE_DIRECTIONS,
+  type WindowHandle,
+  type WindowPositionStrategy,
+  type WindowRect
+} from "./types.ts";
 import type {
   WindowClosedEventDetail,
   WindowFocusedEventDetail,
@@ -32,6 +38,13 @@ export interface WindowManagerOptions {
    * @defaultValue `6`
    */
   resizeRegionSize?: number;
+
+  /**
+   * Strategy used to determine window position.
+   *
+   * @defaultValue `{ type: "required" }`
+   */
+  positionStrategy?: WindowPositionStrategy;
 }
 
 /**
@@ -48,6 +61,7 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
   private readonly dragState: DragState;
   private readonly resizeState: ResizeState;
   private readonly resizeRegionSize: number;
+  private readonly positionStrategy: WindowPositionStrategy;
 
   /**
    * Creates a new WindowManager bound to the given container element.
@@ -62,6 +76,7 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
     this.desktopElement = container;
     this.desktopElement.classList.add("biurko-desktop");
     this.resizeRegionSize = options?.resizeRegionSize ?? DEFAULT_RESIZE_REGION_SIZE;
+    this.positionStrategy = options?.positionStrategy ?? {type: "required"};
     this.dragState = createDragState(this);
     this.resizeState = createResizeState(this);
   }
@@ -78,12 +93,13 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
   public createWindow(options: CreateWindowOptions, ...args: AttachedDataT extends void ? [] : [data: AttachedDataT]): WindowHandle {
     const handle = crypto.randomUUID() as WindowHandle;
     const data = args[0] as AttachedDataT | undefined;
+    const position = this.resolveInitialPosition(options.x, options.y);
 
     const element = document.createElement("div");
     element.dataset["windowHandle"] = handle;
     element.style.position = "absolute";
-    element.style.left = `${options.x}px`;
-    element.style.top = `${options.y}px`;
+    element.style.left = `${position.x}px`;
+    element.style.top = `${position.y}px`;
     element.style.width = `${options.width}px`;
     element.style.height = `${options.height}px`;
 
@@ -360,6 +376,31 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
       x: Math.max(margin - windowWidth, Math.min(x, containerRect.width - margin)),
       y: Math.max(0, Math.min(y, containerRect.height - margin)),
     };
+  }
+
+  private resolveInitialPosition(x: number | undefined, y: number | undefined): { x: number; y: number } {
+    // If explicit coordinates are provided ignore position strategy.
+    if (x !== undefined && y !== undefined) {
+      return {x, y};
+    }
+
+    if (this.positionStrategy.type === "required") {
+      throw new Error("Position strategy requires explicit coordinates but none were provided.");
+    }
+
+    const getPositionOfCurrentlyFocusedWindow = () => {
+      const handle = this.getFocusedWindow();
+      if (!handle) return {x: 0, y: 0};
+      const rect = this.getWindowRect(handle);
+      if (!rect) return {x: 0, y: 0};
+
+      return {x: rect.x, y: rect.y};
+    }
+
+    const {offsetX, offsetY} = this.positionStrategy;
+    const {x: baseX, y: baseY} = getPositionOfCurrentlyFocusedWindow();
+
+    return {x: baseX + offsetX, y: baseY + offsetY};
   }
 
   private applyZIndices(): void {

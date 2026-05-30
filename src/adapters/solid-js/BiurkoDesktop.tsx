@@ -38,7 +38,7 @@ export interface BiurkoDesktopProps {
  * Initializes a {@link WindowManager} and provides it via SolidJS context. All windows created through
  * the manager are rendered as SolidJS portals into their respective surface elements.
  *
- * Place your application UI (taskbar, menus, controls) as `children` — they will have access to
+ * Place your application UI (taskbar, menus, controls) as `children` - they will have access to
  * the window manager through the {@link useWindowManager} function.
  */
 export function BiurkoDesktop(props: BiurkoDesktopProps) {

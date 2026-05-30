@@ -1,4 +1,4 @@
-export type { WindowHandle, CreateWindowOptions, WindowRect } from "./types.ts";
+export type { WindowHandle, CreateWindowOptions, WindowRect, WindowPositionStrategy } from "./types.ts";
 export type {
   WindowOpenedEventDetail,
   WindowClosedEventDetail,

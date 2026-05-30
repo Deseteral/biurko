@@ -37,7 +37,7 @@ export interface BiurkoDesktopProps {
  * Initializes a {@link WindowManager} and provides it via React context. All windows created through
  * the manager are rendered as React portals into their respective surface elements.
  *
- * Place your application UI (taskbar, menus, controls) as `children` — they will have access to
+ * Place your application UI (taskbar, menus, controls) as `children` - they will have access to
  * the window manager through the {@link useWindowManager} hook.
  */
 export function BiurkoDesktop(props: BiurkoDesktopProps): ReactNode {
