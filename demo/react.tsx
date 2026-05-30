@@ -47,6 +47,7 @@ function DesktopControls() {
   return (
     <div className="desktop-button-list">
       <a href="/">Vanilla demo</a>
+      <a href="/solid.html">Solid.js demo</a>
       <button onClick={addWindow}>Add window</button>
     </div>
   );

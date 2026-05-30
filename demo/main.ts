@@ -51,6 +51,11 @@ reactDemoLink.href = "/react.html";
 reactDemoLink.textContent = "React demo →";
 desktopButtonsContainerElement.appendChild(reactDemoLink);
 
+const solidDemoLink = document.createElement('a');
+solidDemoLink.href = "/solid.html";
+solidDemoLink.textContent = "Solid.js demo →";
+desktopButtonsContainerElement.appendChild(solidDemoLink);
+
 openTestWindow("Window A", 60, 60);
 openTestWindow("Window B", 200, 140);
 openTestWindow("Window C", 400, 80);
