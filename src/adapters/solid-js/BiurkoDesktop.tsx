@@ -1,3 +1,4 @@
+/** @jsxImportSource solid-js */
 import { createSignal, For, Show, type JSX } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { WindowManager } from '../../window-manager.ts';
