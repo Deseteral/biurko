@@ -175,6 +175,20 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
   }
 
   /**
+   * Returns the handle of the currently focused window.
+   *
+   * @returns The {@link WindowHandle} of the focused window, or `null` if no windows are open.
+   */
+  public getFocusedWindow(): WindowHandle | null {
+    for (const state of this.windows.values()) {
+      if (state.orderIdx === 0) {
+        return state.handle;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Closes and removes the window from the desktop.
    * The window's DOM element is removed and its internal state is cleaned up.
    * Dispatches a `"window-closed"` event.
