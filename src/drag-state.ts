@@ -4,6 +4,9 @@ import type {WindowMovedEventDetail} from "./events.ts";
 
 export interface DragState {
   start(handle: WindowHandle, clientX: number, clientY: number): void;
+
+  /** Returns `true` while a drag gesture is in progress. */
+  isActive(): boolean;
 }
 
 export function createDragState(wm: WindowManager<any>): DragState {
@@ -14,9 +17,8 @@ export function createDragState(wm: WindowManager<any>): DragState {
   function onMouseMove(e: MouseEvent): void {
     if (!activeHandle) return;
 
-    const newX = e.clientX - offsetX;
-    const newY = e.clientY - offsetY;
-    wm.moveWindow(activeHandle, newX, newY);
+    const pointer = wm.clientToWorld(e.clientX, e.clientY);
+    wm.moveWindow(activeHandle, pointer.x - offsetX, pointer.y - offsetY);
   }
 
   function onMouseUp(): void {
@@ -39,12 +41,18 @@ export function createDragState(wm: WindowManager<any>): DragState {
       const rect = wm.getWindowRect(handle);
       if (!rect) return;
 
+      const origin = wm.clientToWorld(clientX, clientY);
+
       activeHandle = handle;
-      offsetX = clientX - rect.x;
-      offsetY = clientY - rect.y;
+      offsetX = origin.x - rect.x;
+      offsetY = origin.y - rect.y;
 
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("mouseup", onMouseUp);
+    },
+
+    isActive(): boolean {
+      return activeHandle !== null;
     },
   };
 }

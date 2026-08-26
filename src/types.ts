@@ -72,3 +72,15 @@ export type WindowPositionStrategy =
 
 export const RESIZE_DIRECTIONS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
 export type ResizeDirection = typeof RESIZE_DIRECTIONS[number];
+
+/**
+ * Determines how the {@link WindowManager} desktop behaves.
+ *
+ * - `"static"` - The desktop is fixed. Windows are clamped to stay within the visible desktop area.
+ * - `"infinite-canvas"` - The desktop acts as an infinite canvas. Windows live inside a translatable
+ *   world layer that can be moved with the mouse wheel or the viewport translate API, and window
+ *   placement is not clamped to the viewport.
+ */
+export type DesktopMode =
+  | { readonly type: "static" }
+  | { readonly type: "infinite-canvas" };

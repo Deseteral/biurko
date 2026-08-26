@@ -1,11 +1,13 @@
 import {
   type CreateWindowOptions,
+  type DesktopMode,
   RESIZE_DIRECTIONS,
   type WindowHandle,
   type WindowPositionStrategy,
   type WindowRect
 } from "./types.ts";
 import type {
+  ViewportTranslatedEventDetail,
   WindowClosedEventDetail,
   WindowFocusedEventDetail,
   WindowManagerEventMap,
@@ -29,6 +31,14 @@ interface WindowState<AttachedDataT> {
 
 const DEFAULT_RESIZE_REGION_SIZE = 6;
 
+/**
+ * Size of the native-scroll world layer in `"infinite-canvas"` mode.
+ * The camera starts centered, so logical world coordinates span approximately
+ * `-WORLD_ORIGIN_OFFSET` to `WORLD_ORIGIN_OFFSET` px on each axis.
+ */
+const WORLD_SIZE_PX = 200_000;
+const WORLD_ORIGIN_OFFSET = WORLD_SIZE_PX / 2;
+
 /** Configuration options for the {@link WindowManager} constructor. */
 export interface WindowManagerOptions {
   /**
@@ -45,6 +55,13 @@ export interface WindowManagerOptions {
    * @defaultValue `{ type: "required" }`
    */
   positionStrategy?: WindowPositionStrategy;
+
+  /**
+   * Determines how the desktop behaves (see {@link DesktopMode}).
+   *
+   * @defaultValue `{ type: "static" }`
+   */
+  mode?: DesktopMode;
 }
 
 /**
@@ -57,16 +74,24 @@ export interface WindowManagerOptions {
  */
 export class WindowManager<AttachedDataT = void> extends EventTarget {
   private readonly desktopElement: HTMLElement;
+  private readonly scrollerElement: HTMLDivElement;
+  private readonly worldElement: HTMLDivElement;
   private readonly windows: Map<WindowHandle, WindowState<AttachedDataT>> = new Map();
   private readonly dragState: DragState;
   private readonly resizeState: ResizeState;
   private readonly resizeRegionSize: number;
   private readonly positionStrategy: WindowPositionStrategy;
+  private readonly mode: DesktopMode;
+  private translateX = 0;
+  private translateY = 0;
 
   /**
    * Creates a new WindowManager bound to the given container element.
    * The container acts as the "desktop" area where windows are positioned. A `biurko-desktop` CSS class
    * is added to it automatically.
+   *
+   * Windows are placed inside an inner `biurko-world` layer. In `"infinite-canvas"` mode this layer
+   * can be translated to pan across the canvas (see {@link getViewportTranslate}).
    *
    * @param container - The DOM element that serves as the desktop area.
    * @param options - Optional configuration details.
@@ -75,14 +100,57 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
     super();
     this.desktopElement = container;
     this.desktopElement.classList.add("biurko-desktop");
+    this.desktopElement.dataset['biurkoType'] = 'desktop';
+    this.mode = options?.mode ?? {type: "static"};
     this.resizeRegionSize = options?.resizeRegionSize ?? DEFAULT_RESIZE_REGION_SIZE;
     this.positionStrategy = options?.positionStrategy ?? {type: "required"};
+
+    this.desktopElement.style.position = "relative";
+
+    const scrollerElement = document.createElement("div");
+    scrollerElement.dataset['biurkoType'] = 'scroller';
+    scrollerElement.style.position = "absolute";
+    scrollerElement.style.top = "0px";
+    scrollerElement.style.left = "0px";
+    scrollerElement.style.width = "100%";
+    scrollerElement.style.height = "100%";
+    scrollerElement.style.overflow = "hidden";
+
+    if (this.mode.type === "infinite-canvas") {
+      scrollerElement.style.overscrollBehavior = "none";
+      scrollerElement.addEventListener("wheel", (e: WheelEvent): void => this.onWheel(e), {passive: false});
+    }
+
+    const worldElement = document.createElement("div");
+    worldElement.dataset['biurkoType'] = "world";
+    worldElement.style.position = "absolute";
+    worldElement.style.top = "0px";
+    worldElement.style.left = "0px";
+
+    if (this.mode.type === "infinite-canvas") {
+      worldElement.style.width = `${WORLD_SIZE_PX}px`;
+      worldElement.style.height = `${WORLD_SIZE_PX}px`;
+    } else {
+      worldElement.style.width = "100%";
+      worldElement.style.height = "100%";
+    }
+
+    scrollerElement.appendChild(worldElement);
+    this.desktopElement.appendChild(scrollerElement);
+    this.scrollerElement = scrollerElement;
+    this.worldElement = worldElement;
+
+    if (this.mode.type === "infinite-canvas") {
+      this.scrollerElement.scrollLeft = WORLD_ORIGIN_OFFSET;
+      this.scrollerElement.scrollTop = WORLD_ORIGIN_OFFSET;
+    }
+
     this.dragState = createDragState(this);
     this.resizeState = createResizeState(this);
   }
 
   /**
-   * Creates a new window and appends it to the desktop container.
+   * Creates a new window and appends it to the desktop's world layer.
    * The window is automatically focused (brought to front) upon creation.
    * Dispatches a `"window-opened"` event.
    *
@@ -97,9 +165,11 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
 
     const element = document.createElement("div");
     element.dataset["windowHandle"] = handle;
+    element.dataset["biurkoType"] = 'window';
     element.style.position = "absolute";
-    element.style.left = `${position.x}px`;
-    element.style.top = `${position.y}px`;
+    const originOffset = this.worldOriginOffset;
+    element.style.left = `${position.x + originOffset}px`;
+    element.style.top = `${position.y + originOffset}px`;
     element.style.width = `${options.width}px`;
     element.style.height = `${options.height}px`;
 
@@ -107,6 +177,11 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
     surface.classList.add("biurko-surface");
     surface.style.height = "100%";
     surface.style.overflow = "hidden";
+
+    if (this.mode.type === "infinite-canvas") {
+      // Prevent wheel scrolling over an unscrollable window from chaining into the canvas.
+      surface.style.overscrollBehavior = "contain";
+    }
 
     element.appendChild(surface);
 
@@ -123,7 +198,7 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
       element.appendChild(resizeRegion);
     }
 
-    this.desktopElement.appendChild(element);
+    this.worldElement.appendChild(element);
 
     // Push all existing windows back by one.
     for (const state of this.windows.values()) {
@@ -294,9 +369,10 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
     if (!windowState) return null;
 
     const el = windowState.element;
+    const originOffset = this.worldOriginOffset;
     return {
-      x: parsePx(el.style.left),
-      y: parsePx(el.style.top),
+      x: parsePx(el.style.left) - originOffset,
+      y: parsePx(el.style.top) - originOffset,
       width: parsePx(el.style.width),
       height: parsePx(el.style.height),
     };
@@ -321,6 +397,82 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
     return this.desktopElement;
   }
 
+  /** Offset between logical world coordinates and physical offsets inside the world layer. */
+  private get worldOriginOffset(): number {
+    return this.mode.type === "infinite-canvas" ? WORLD_ORIGIN_OFFSET : 0;
+  }
+
+  /**
+   * Returns the current translate offset of the world layer.
+   * The offset is `0,0` unless the mode is `"infinite-canvas"`.
+   *
+   * @returns The horizontal and vertical translate offsets in pixels.
+   */
+  public getViewportTranslate(): { x: number; y: number } {
+    return {x: this.translateX, y: this.translateY};
+  }
+
+  /**
+   * Sets the translation offset of the world layer.
+   * In `"infinite-canvas"` mode the offset is center-origin and bounded to approximately
+   * `±100000` px per axis (the size of the scrollable world).
+   * Dispatches a `"viewport-translated"` event when the offset changes.
+   *
+   * @param x - New horizontal offset in pixels.
+   * @param y - New vertical offset in pixels.
+   */
+  public setViewportTranslate(x: number, y: number): void {
+    if (x === this.translateX && y === this.translateY) return;
+
+    this.translateX = x;
+    this.translateY = y;
+
+    this.scrollerElement.scrollLeft = WORLD_ORIGIN_OFFSET - this.translateX;
+    this.scrollerElement.scrollTop = WORLD_ORIGIN_OFFSET - this.translateY;
+
+    this.dispatchEvent(new CustomEvent<ViewportTranslatedEventDetail>("viewport-translated", {
+      detail: {x, y},
+    }));
+  }
+
+  /**
+   * Translates the world layer by a relative offset (see {@link setViewportTranslate}).
+   *
+   * @param dx - Horizontal offset delta in pixels.
+   * @param dy - Vertical offset delta in pixels.
+   */
+  public translateViewport(dx: number, dy: number): void {
+    this.setViewportTranslate(this.translateX + dx, this.translateY + dy);
+  }
+
+  /**
+   * Converts viewport (client) coordinates to desktop world coordinates,
+   * taking the current viewport translate into account.
+   *
+   * @param clientX - Horizontal position in client (viewport) coordinates.
+   * @param clientY - Vertical position in client (viewport) coordinates.
+   * @returns The corresponding position in desktop coordinate space.
+   */
+  public clientToWorld(clientX: number, clientY: number): { x: number; y: number } {
+    const rect = this.scrollerElement.getBoundingClientRect();
+    const originOffset = this.worldOriginOffset;
+    return {
+      x: clientX - rect.left + this.scrollerElement.scrollLeft - originOffset,
+      y: clientY - rect.top + this.scrollerElement.scrollTop - originOffset,
+    };
+  }
+
+  private onWheel(e: WheelEvent): void {
+    if (this.dragState.isActive() || this.resizeState.isActive()) return;
+
+    const type = (e.target as HTMLHtmlElement).dataset['biurkoType'];
+    if (type !== this.scrollerElement.dataset['biurkoType'] && type !== this.worldElement.dataset['biurkoType']) {
+      return;
+    }
+
+    this.translateViewport(-e.deltaX, -e.deltaY);
+  }
+
   /**
    * Move the window to the specified position.
    * The position is clamped so that at least a small portion of the window remains visible
@@ -336,10 +488,11 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
 
     const el = windowState.element;
     const width = parsePx(el.style.width);
+    const originOffset = this.worldOriginOffset;
     const clampedPosition = this.clampWindowPositionWithinDesktop(x, y, width);
 
-    el.style.left = `${clampedPosition.x}px`;
-    el.style.top = `${clampedPosition.y}px`;
+    el.style.left = `${clampedPosition.x + originOffset}px`;
+    el.style.top = `${clampedPosition.y + originOffset}px`;
   }
 
   /**
@@ -362,14 +515,19 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
     const clampedPosition = this.clampWindowPositionWithinDesktop(x, y, clampedWidth);
 
     const el = windowState.element;
-    el.style.left = `${clampedPosition.x}px`;
-    el.style.top = `${clampedPosition.y}px`;
+    const originOffset = this.worldOriginOffset;
+    el.style.left = `${clampedPosition.x + originOffset}px`;
+    el.style.top = `${clampedPosition.y + originOffset}px`;
     el.style.width = `${clampedWidth}px`;
     el.style.height = `${clampedHeight}px`;
   }
 
   /** Clamp position so that at least `margin` pixels of the window remain visible within the container. */
   private clampWindowPositionWithinDesktop(x: number, y: number, windowWidth: number): { x: number; y: number } {
+    if (this.mode.type === "infinite-canvas") {
+      return {x, y};
+    }
+
     const containerRect = this.desktopElement.getBoundingClientRect();
     const margin = this.resizeRegionSize * 2;
     return {

@@ -48,10 +48,20 @@ export interface WindowResizedEventDetail {
   height: number;
 }
 
+/** Event detail emitted when viewport of the infinite-canvas desktop is translated. */
+export interface ViewportTranslatedEventDetail {
+  /** New horizontal translate offset of the world layer, in pixels. */
+  x: number;
+
+  /** New vertical translate offset of the world layer, in pixels. */
+  y: number;
+}
+
 export interface WindowManagerEventMap {
   "window-opened": CustomEvent<WindowOpenedEventDetail>;
   "window-closed": CustomEvent<WindowClosedEventDetail>;
   "window-focused": CustomEvent<WindowFocusedEventDetail>;
   "window-moved": CustomEvent<WindowMovedEventDetail>;
   "window-resized": CustomEvent<WindowResizedEventDetail>;
+  "viewport-translated": CustomEvent<ViewportTranslatedEventDetail>;
 }

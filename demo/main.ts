@@ -6,13 +6,14 @@ desktopButtonsContainerElement.classList.add('desktop-button-list')
 desktopButtonsContainerElement.textContent = 'Desktop'
 desktopElement.appendChild(desktopButtonsContainerElement);
 
-const wm = new WindowManager(desktopElement);
+const wm = new WindowManager(desktopElement, {mode: {type: "infinite-canvas"}});
 
 wm.addEventListener("window-opened", (e) => console.log("window-opened", e.detail));
 wm.addEventListener("window-closed", (e) => console.log("window-closed", e.detail));
 wm.addEventListener("window-focused", (e) => console.log("window-focused", e.detail));
 wm.addEventListener("window-moved", (e) => console.log("window-moved", e.detail));
 wm.addEventListener("window-resized", (e) => console.log("window-resized", e.detail));
+wm.addEventListener("viewport-translated", (e) => console.log("viewport-translated", e.detail));
 
 function openTestWindow(title: string, x: number, y: number): void {
   const handle = wm.createWindow({title, x, y, width: 320, height: 240, minWidth: 160, minHeight: 120});
@@ -46,6 +47,18 @@ debugResizeBtn.textContent = "Toggle debug resize regions visualization";
 debugResizeBtn.addEventListener("click", () => document.body.classList.toggle("debug-resize"));
 desktopButtonsContainerElement.appendChild(debugResizeBtn);
 
+const resetTranslateBtn = document.createElement('button');
+resetTranslateBtn.textContent = "Reset translate";
+resetTranslateBtn.addEventListener("click", () => wm.setViewportTranslate(0, 0));
+desktopButtonsContainerElement.appendChild(resetTranslateBtn);
+
+const translateLabel = document.createElement('div');
+translateLabel.textContent = formatTranslate(wm.getViewportTranslate());
+wm.addEventListener("viewport-translated", (e) => {
+  translateLabel.textContent = formatTranslate(e.detail);
+});
+desktopButtonsContainerElement.appendChild(translateLabel);
+
 const reactDemoLink = document.createElement('a');
 reactDemoLink.href = "/react.html";
 reactDemoLink.textContent = "React demo →";
@@ -59,3 +72,7 @@ desktopButtonsContainerElement.appendChild(solidDemoLink);
 openTestWindow("Window A", 60, 60);
 openTestWindow("Window B", 200, 140);
 openTestWindow("Window C", 400, 80);
+
+function formatTranslate(t: { x: number; y: number }): string {
+  return `translate: (${t.x}, ${t.y})`;
+}
