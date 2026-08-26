@@ -52,6 +52,11 @@ resetTranslateBtn.textContent = "Reset translate";
 resetTranslateBtn.addEventListener("click", () => wm.setViewportTranslate(0, 0));
 desktopButtonsContainerElement.appendChild(resetTranslateBtn);
 
+const resetZoomBtn = document.createElement('button');
+resetZoomBtn.textContent = "Reset zoom";
+resetZoomBtn.addEventListener("click", () => wm.resetZoomLevel());
+desktopButtonsContainerElement.appendChild(resetZoomBtn);
+
 const translateLabel = document.createElement('div');
 translateLabel.textContent = formatTranslate(wm.getViewportTranslate());
 wm.addEventListener("viewport-translated", (e) => {

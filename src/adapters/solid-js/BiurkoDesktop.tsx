@@ -46,17 +46,18 @@ export interface BiurkoDesktopProps {
  * Place your application UI (taskbar, menus, controls) as `children` - they will have access to
  * the window manager through the {@link useWindowManager} function.
  */
-export function BiurkoDesktop(props: BiurkoDesktopProps) {
+export function BiurkoDesktop(props: BiurkoDesktopProps): JSX.Element {
   const [windowManager, setWindowManager] = createSignal<SolidJsWindowManager>();
   const [windows, setWindows] = createSignal<WindowEntry[]>([]);
 
-  const initRef = (el: HTMLDivElement) => {
+  const initRef = (el: HTMLDivElement): void => {
     const manager: SolidJsWindowManager = new WindowManager<() => JSX.Element>(el, props.options);
 
     manager.addEventListener('window-opened', (e) => {
       const { handle } = e.detail;
-      const surface = manager.getWindowSurface(handle)!;
-      const render = manager.getWindowData(handle)!;
+      const surface = manager.getWindowSurface(handle);
+      const render = manager.getWindowData(handle);
+      if (!surface || !render) return;
       setWindows((prev) => [...prev, { handle, surface, render }]);
     });
 

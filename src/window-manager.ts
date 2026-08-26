@@ -30,6 +30,7 @@ interface WindowState<AttachedDataT> {
 }
 
 const DEFAULT_RESIZE_REGION_SIZE = 6;
+type NoAttachedData = ReturnType<() => void>;
 
 /**
  * Size of the native-scroll world layer in `"infinite-canvas"` mode.
@@ -38,6 +39,8 @@ const DEFAULT_RESIZE_REGION_SIZE = 6;
  */
 const WORLD_SIZE_PX = 200_000;
 const WORLD_ORIGIN_OFFSET = WORLD_SIZE_PX / 2;
+const DEFAULT_ZOOM_LEVEL = 1;
+const MIN_ZOOM_LEVEL = 0.1;
 
 /** Configuration options for the {@link WindowManager} constructor. */
 export interface WindowManagerOptions {
@@ -72,7 +75,7 @@ export interface WindowManagerOptions {
  * @typeParam AttachedDataT - Optional data type attached to each window. Use `void` (default) if no
  *   data is needed.
  */
-export class WindowManager<AttachedDataT = void> extends EventTarget {
+export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   private readonly desktopElement: HTMLElement;
   private readonly scrollerElement: HTMLDivElement;
   private readonly worldElement: HTMLDivElement;
@@ -84,6 +87,7 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
   private readonly mode: DesktopMode;
   private translateX = 0;
   private translateY = 0;
+  private zoomLevel = DEFAULT_ZOOM_LEVEL;
 
   /**
    * Creates a new WindowManager bound to the given container element.
@@ -130,6 +134,7 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
     if (this.mode.type === "infinite-canvas") {
       worldElement.style.width = `${WORLD_SIZE_PX}px`;
       worldElement.style.height = `${WORLD_SIZE_PX}px`;
+      worldElement.style.transformOrigin = "center center";
     } else {
       worldElement.style.width = "100%";
       worldElement.style.height = "100%";
@@ -158,7 +163,7 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
    * @param args - If `AttachedDataT` is not `void`, the attached data must be passed as the second argument.
    * @returns A unique {@link WindowHandle} identifying the created window.
    */
-  public createWindow(options: CreateWindowOptions, ...args: AttachedDataT extends void ? [] : [data: AttachedDataT]): WindowHandle {
+  public createWindow(options: CreateWindowOptions, ...args: AttachedDataT extends NoAttachedData ? [] : [data: AttachedDataT]): WindowHandle {
     const handle = crypto.randomUUID() as WindowHandle;
     const data = args[0] as AttachedDataT | undefined;
     const position = this.resolveInitialPosition(options.x, options.y);
@@ -446,6 +451,52 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
   }
 
   /**
+   * Sets the scale of the world layer.
+   *
+   * @param level - The scale applied to the world layer.
+   */
+  public setZoomLevel(level: number): void {
+    this.zoomLevel = Math.max(MIN_ZOOM_LEVEL, level);
+    this.worldElement.style.transform = `scale(${this.zoomLevel}) translateZ(0)`;
+  }
+
+  /**
+   * Scale the world layer by `delta` amount.
+   *
+   * @param delta - The delta applied to the world layer scale.
+   */
+  public zoomBy(delta: number): void {
+    this.setZoomLevel(this.zoomLevel + delta);
+  }
+
+
+  /** Resets the infinite-canvas zoom level to its default value. */
+  public resetZoomLevel(): void {
+    this.setZoomLevel(DEFAULT_ZOOM_LEVEL);
+  }
+
+  /**
+   * Returns the scale of the world layer.
+   * @returns current scale of world layer.
+   */
+  public getZoomLevel(): number {
+    return this.zoomLevel;
+  }
+
+  private setZoomLevelAtPoint(level: number, clientX: number, clientY: number): void {
+    const point = this.clientToWorld(clientX, clientY);
+    const previousZoomLevel = this.zoomLevel;
+
+    this.setZoomLevel(level);
+
+    const zoomDelta = this.zoomLevel - previousZoomLevel;
+    this.setViewportTranslate(
+      this.translateX - zoomDelta * point.x,
+      this.translateY - zoomDelta * point.y,
+    );
+  }
+
+  /**
    * Converts viewport (client) coordinates to desktop world coordinates,
    * taking the current viewport translate into account.
    *
@@ -457,20 +508,30 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
     const rect = this.scrollerElement.getBoundingClientRect();
     const originOffset = this.worldOriginOffset;
     return {
-      x: clientX - rect.left + this.scrollerElement.scrollLeft - originOffset,
-      y: clientY - rect.top + this.scrollerElement.scrollTop - originOffset,
+      x: (clientX - rect.left + this.scrollerElement.scrollLeft - originOffset) / this.zoomLevel,
+      y: (clientY - rect.top + this.scrollerElement.scrollTop - originOffset) / this.zoomLevel,
     };
   }
 
   private onWheel(e: WheelEvent): void {
     if (this.dragState.isActive() || this.resizeState.isActive()) return;
 
-    const type = (e.target as HTMLHtmlElement).dataset['biurkoType'];
-    if (type !== this.scrollerElement.dataset['biurkoType'] && type !== this.worldElement.dataset['biurkoType']) {
-      return;
+    const zoomMode = e.shiftKey;
+    const ignoreOriginElement = e.altKey;
+
+    if (!ignoreOriginElement) {
+      const type = (e.target as HTMLHtmlElement).dataset['biurkoType'];
+      if (type !== this.scrollerElement.dataset['biurkoType'] && type !== this.worldElement.dataset['biurkoType']) {
+        return;
+      }
     }
 
-    this.translateViewport(-e.deltaX, -e.deltaY);
+    if (zoomMode) {
+      const factor = Math.exp(e.deltaY / 1000);
+      this.setZoomLevelAtPoint(this.zoomLevel * factor, e.clientX, e.clientY);
+    } else {
+      this.translateViewport(-e.deltaX, -e.deltaY);
+    }
   }
 
   /**
@@ -546,14 +607,14 @@ export class WindowManager<AttachedDataT = void> extends EventTarget {
       throw new Error("Position strategy requires explicit coordinates but none were provided.");
     }
 
-    const getPositionOfCurrentlyFocusedWindow = () => {
+    const getPositionOfCurrentlyFocusedWindow = (): { x: number; y: number } => {
       const handle = this.getFocusedWindow();
       if (!handle) return {x: 0, y: 0};
       const rect = this.getWindowRect(handle);
       if (!rect) return {x: 0, y: 0};
 
       return {x: rect.x, y: rect.y};
-    }
+    };
 
     const {offsetX, offsetY} = this.positionStrategy;
     const {x: baseX, y: baseY} = getPositionOfCurrentlyFocusedWindow();

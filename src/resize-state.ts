@@ -9,7 +9,7 @@ export interface ResizeState {
   isActive(): boolean;
 }
 
-export function createResizeState(wm: WindowManager<any>): ResizeState {
+export function createResizeState(wm: WindowManager<unknown>): ResizeState {
   let activeHandle: WindowHandle | null = null;
   let activeDirection: ResizeDirection | null = null;
   let startX = 0;
@@ -42,12 +42,8 @@ export function createResizeState(wm: WindowManager<any>): ResizeState {
   function onMouseMove(e: MouseEvent): void {
     if (!activeHandle || !activeDirection) return;
 
-    // TODO: Remove this comment.
-    // Client-space deltas are invariant under translation-only transforms of the world layer,
-    // so no client-to-world coordinate conversion is needed here. This breaks if zoom is ever added.
-    // TODO: When adding zoom, decide how to handle window resizing (maybe just disable resize?).
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
+    const dx = (e.clientX - startX) / wm.getZoomLevel();
+    const dy = (e.clientY - startY) / wm.getZoomLevel();
 
     let newX = startRect.x;
     let newY = startRect.y;

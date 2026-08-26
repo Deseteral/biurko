@@ -9,7 +9,7 @@ export interface DragState {
   isActive(): boolean;
 }
 
-export function createDragState(wm: WindowManager<any>): DragState {
+export function createDragState(wm: WindowManager<unknown>): DragState {
   let activeHandle: WindowHandle | null = null;
   let offsetX = 0;
   let offsetY = 0;
