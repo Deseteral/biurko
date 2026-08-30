@@ -63,6 +63,7 @@ body {
   flex-direction: column;
   border: 1px solid black;
   background: lightgray;
+  user-select: none;
 }
 
 .biurko-desktop {

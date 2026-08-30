@@ -74,9 +74,9 @@ solidDemoLink.href = "/solid.html";
 solidDemoLink.textContent = "Solid.js demo →";
 desktopButtonsContainerElement.appendChild(solidDemoLink);
 
-openTestWindow("Window A", 60, 60);
-openTestWindow("Window B", 200, 140);
-openTestWindow("Window C", 400, 80);
+openTestWindow("Window A", 300, 60);
+openTestWindow("Window B", 400, 140);
+openTestWindow("Window C", 500, 80);
 
 function formatTranslate(t: { x: number; y: number }): string {
   return `translate: (${t.x}, ${t.y})`;
