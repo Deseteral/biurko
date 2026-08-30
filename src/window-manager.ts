@@ -33,13 +33,12 @@ interface WindowState<AttachedDataT> {
 const DEFAULT_RESIZE_REGION_SIZE = 6;
 type NoAttachedData = ReturnType<() => void>;
 
-/**
- * Size of the native-scroll world layer in `"infinite-canvas"` mode.
- * The camera starts centered, so logical world coordinates span approximately
- * `-WORLD_ORIGIN_OFFSET` to `WORLD_ORIGIN_OFFSET` px on each axis.
- */
+// Size of the native-scroll world layer in `"infinite-canvas"` mode.
+// The camera starts centered, so logical world coordinates span approximately
+// `-WORLD_ORIGIN_OFFSET` to `WORLD_ORIGIN_OFFSET` px on each axis.
 const WORLD_SIZE_PX = 200_000;
 const WORLD_ORIGIN_OFFSET = WORLD_SIZE_PX / 2;
+
 const DEFAULT_ZOOM_LEVEL = 1;
 const MIN_ZOOM_LEVEL = 0.1;
 
@@ -498,6 +497,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
    */
   public setZoomLevel(level: number): void {
     this.zoomLevel = Math.max(MIN_ZOOM_LEVEL, level);
+    // translateZ(0) is necessary to prevent rendering weird shadow-lines when translating viewport on smaller zoom.
     this.worldElement.style.transform = `scale(${this.zoomLevel}) translateZ(0)`;
   }
 
