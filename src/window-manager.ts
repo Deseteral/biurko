@@ -203,6 +203,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
       resizeRegion.addEventListener("mousedown", (e: MouseEvent): void => {
         e.stopPropagation();
         this.resizeState.start(handle, direction, e.clientX, e.clientY);
+        this.focusWindow(handle);
       });
 
       element.appendChild(resizeRegion);
