@@ -24,7 +24,6 @@ interface WindowState<AttachedDataT> {
   surface: HTMLDivElement;
   title: string;
   data: AttachedDataT | undefined;
-  dragRegionSelector: string;
   minWidth: number;
   minHeight: number;
   orderIdx: number;
@@ -41,6 +40,8 @@ const WORLD_ORIGIN_OFFSET = WORLD_SIZE_PX / 2;
 
 const DEFAULT_ZOOM_LEVEL = 1;
 const MIN_ZOOM_LEVEL = 0.1;
+
+const DRAG_REGION_SELECTOR = "[data-biurko-drag-region]";
 
 /** Configuration options for the {@link WindowManager} constructor. */
 export interface WindowManagerOptions {
@@ -161,6 +162,11 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
 
     this.dragState = createDragState(this);
     this.resizeState = createResizeState(this);
+
+    // Force drag region to be always interactive, even if window is not (because it's not focused).
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(`${DRAG_REGION_SELECTOR} { pointer-events: all; }`);
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
   }
 
   /**
@@ -176,7 +182,6 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     const handle = crypto.randomUUID() as WindowHandle;
     const data = args[0] as AttachedDataT | undefined;
     const position = this.resolveInitialPosition(options.x, options.y);
-    const dragRegionSelector = options.dragRegionSelector ?? "[data-biurko-drag-region]";
 
     // Create root window element.
     const element = document.createElement("div");
@@ -224,11 +229,6 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     // Add window to the DOM.
     this.worldElement.appendChild(element);
 
-    // Force drag region to be always interactive, even if window is not (because it's not focused).
-    const sheet = new CSSStyleSheet();
-    sheet.replaceSync(`${dragRegionSelector} { pointer-events: all; }`);
-    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
-
     // Add new window to window registry.
     const state: WindowState<AttachedDataT> = {
       handle,
@@ -236,7 +236,6 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
       surface,
       title: options.title,
       data,
-      dragRegionSelector,
       minWidth: options.minWidth ?? 0,
       minHeight: options.minHeight ?? 0,
       orderIdx: this.windows.size, // Put window behind other windows, and let focusing logic handle ordering.
@@ -247,7 +246,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     element.addEventListener("mousedown", (e: MouseEvent): void => {
       // When drag region was the target, start window moving logic.
       const target = e.target as Element | null;
-      if (target?.closest(dragRegionSelector)) {
+      if (target?.closest(DRAG_REGION_SELECTOR)) {
         this.dragState.start(handle, e.clientX, e.clientY);
       }
 

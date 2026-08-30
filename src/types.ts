@@ -33,14 +33,6 @@ export interface CreateWindowOptions {
 
   /** Minimum height constraint enforced during resize. Defaults to `0`. */
   minHeight?: number;
-
-  /**
-   * A CSS selector identifying which elements inside the window surface act as drag handles.
-   * Clicking and dragging on elements matching this selector will move the window.
-   *
-   * @defaultValue `"[data-biurko-drag-region]"`
-   */
-  dragRegionSelector?: string;
 }
 
 /**
