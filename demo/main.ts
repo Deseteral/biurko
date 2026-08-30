@@ -6,7 +6,11 @@ desktopButtonsContainerElement.classList.add('desktop-button-list')
 desktopButtonsContainerElement.textContent = 'Desktop'
 desktopElement.appendChild(desktopButtonsContainerElement);
 
-const wm = new WindowManager(desktopElement, {mode: {type: "infinite-canvas"}});
+const wm = new WindowManager(desktopElement, {
+  mode: {type: "infinite-canvas"},
+  positionStrategy: {type: "offset-from-focused", offsetX: 20, offsetY: 20},
+  windowInteractivity: {type: "focused-only"},
+});
 
 wm.addEventListener("window-opened", (e) => console.log("window-opened", e.detail));
 wm.addEventListener("window-closed", (e) => console.log("window-closed", e.detail));
