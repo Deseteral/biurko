@@ -167,7 +167,9 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     const handle = crypto.randomUUID() as WindowHandle;
     const data = args[0] as AttachedDataT | undefined;
     const position = this.resolveInitialPosition(options.x, options.y);
+    const dragRegionSelector = options.dragRegionSelector ?? "[data-biurko-drag-region]";
 
+    // Create root window element.
     const element = document.createElement("div");
     element.dataset["windowHandle"] = handle;
     element.dataset["biurkoType"] = 'window';
@@ -178,10 +180,12 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     element.style.width = `${options.width}px`;
     element.style.height = `${options.height}px`;
 
+    // Create container for user content (including window chrome).
     const surface = document.createElement("div");
     surface.classList.add("biurko-surface");
     surface.style.height = "100%";
     surface.style.overflow = "hidden";
+    surface.style.pointerEvents = "none";
 
     if (this.mode.type === "infinite-canvas") {
       // Prevent wheel scrolling over an unscrollable window from chaining into the canvas.
@@ -190,6 +194,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
 
     element.appendChild(surface);
 
+    // Create resize regions.
     for (const direction of RESIZE_DIRECTIONS) {
       const resizeRegion = document.createElement("div");
       resizeRegion.dataset["resizeDirection"] = direction;
@@ -203,15 +208,15 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
       element.appendChild(resizeRegion);
     }
 
+    // Add window to the DOM.
     this.worldElement.appendChild(element);
 
-    // Push all existing windows back by one.
-    for (const state of this.windows.values()) {
-      state.orderIdx += 1;
-    }
+    // Force drag region to be always interactive, even if window is not (because it's not focused).
+    const sheet = new CSSStyleSheet();
+    sheet.replaceSync(`${dragRegionSelector} { pointer-events: all; }`);
+    document.adoptedStyleSheets = [...document.adoptedStyleSheets, sheet];
 
-    const dragRegionSelector = options.dragRegionSelector ?? "[data-biurko-drag-region]";
-
+    // Add new window to window registry.
     const state: WindowState<AttachedDataT> = {
       handle,
       element,
@@ -221,20 +226,24 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
       dragRegionSelector,
       minWidth: options.minWidth ?? 0,
       minHeight: options.minHeight ?? 0,
-      orderIdx: 0,
+      orderIdx: this.windows.size, // Put window behind other windows, and let focusing logic handle ordering.
     };
-
     this.windows.set(handle, state);
 
+    // Handle clicking on window.
     element.addEventListener("mousedown", (e: MouseEvent): void => {
+      // When drag region was the target, start window moving logic.
       const target = e.target as Element | null;
       if (target?.closest(dragRegionSelector)) {
         this.dragState.start(handle, e.clientX, e.clientY);
       }
+
+      // Make the window focused.
       this.focusWindow(handle);
     });
 
-    this.applyZIndices();
+    // Make new window focused.
+    this.focusWindow(handle);
 
     this.dispatchEvent(new CustomEvent<WindowOpenedEventDetail>("window-opened", {
       detail: {handle},
@@ -253,17 +262,28 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   public focusWindow(handle: WindowHandle): void {
     const target = this.windows.get(handle);
     if (!target) return;
-    if (target.orderIdx === 0) return;
 
-    // Only windows that were in front of target need to shift back.
     for (const state of this.windows.values()) {
       if (state.handle === handle) continue;
-      if (state.orderIdx >= target.orderIdx) continue;
-      state.orderIdx += 1;
+
+      // Currently focused window needs to stop receiving pointer events.
+      if (state.orderIdx === 0) {
+        state.surface.style.pointerEvents = "none";
+      }
+
+      // Shift back other windows.
+      // Only windows that were in front of target need to shift back.
+      if (state.orderIdx < target.orderIdx) {
+        state.orderIdx += 1;
+      }
     }
 
+    // Newly focused windows needs to start receiving pointer events.
+    target.surface.style.pointerEvents = "all";
+
+    // Bring newly focused window to the front.
     target.orderIdx = 0;
-    this.applyZIndices();
+    this.applyWindowOrdering();
 
     this.dispatchEvent(new CustomEvent<WindowFocusedEventDetail>("window-focused", {
       detail: {handle},
@@ -305,6 +325,13 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
         state.orderIdx -= 1;
       }
     }
+
+    const nextFocusedWindow = this.getFocusedWindow();
+    if (nextFocusedWindow) {
+      this.focusWindow(nextFocusedWindow);
+    }
+
+    this.applyWindowOrdering();
 
     this.dispatchEvent(new CustomEvent<WindowClosedEventDetail>("window-closed", {
       detail: {handle},
@@ -622,10 +649,19 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     return {x: baseX + offsetX, y: baseY + offsetY};
   }
 
-  private applyZIndices(): void {
-    const total = this.windows.size;
-    for (const state of this.windows.values()) {
-      state.element.style.zIndex = String(total - 1 - state.orderIdx);
+  /**
+   * Stabilize orderIdx (make them continuous, remove duplicate indices).
+   * Apply order to z-index for all windows.
+   * This method must be called everytime any orderIdx is changed.
+   */
+  private applyWindowOrdering(): void {
+    const sortedWindows = [...this.windows.values()]
+      .sort((a, b) => a.orderIdx - b.orderIdx);
+
+    for (let idx = 0; idx < sortedWindows.length; idx += 1) {
+      const state = sortedWindows[idx]!;
+      state.orderIdx = idx;
+      state.element.style.zIndex = String(sortedWindows.length - 1 - state.orderIdx);
     }
   }
 
