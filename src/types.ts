@@ -84,3 +84,13 @@ export type ResizeDirection = typeof RESIZE_DIRECTIONS[number];
 export type DesktopMode =
   | { readonly type: "static" }
   | { readonly type: "infinite-canvas" };
+
+/**
+ * Determines which windows can receive mouse input events.
+ *
+ *  -`"all"` - All windows are always interactive.
+ *  -`"focused-only"` - Only currently focused window is interactive.
+ */
+export type WindowInteractivity =
+  | { readonly type: "all" }
+  | { readonly type: "focused-only" }

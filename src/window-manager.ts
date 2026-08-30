@@ -3,6 +3,7 @@ import {
   type DesktopMode,
   RESIZE_DIRECTIONS,
   type WindowHandle,
+  type WindowInteractivity,
   type WindowPositionStrategy,
   type WindowRect
 } from "./types.ts";
@@ -65,6 +66,13 @@ export interface WindowManagerOptions {
    * @defaultValue `{ type: "static" }`
    */
   mode?: DesktopMode;
+
+  /**
+   * Determines which windows can receive mouse input events.
+   *
+   * @defaultValue `{ type: "all" }`
+   */
+  windowInteractivity?: WindowInteractivity;
 }
 
 /**
@@ -85,6 +93,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   private readonly resizeRegionSize: number;
   private readonly positionStrategy: WindowPositionStrategy;
   private readonly mode: DesktopMode;
+  private readonly windowInteractivity: WindowInteractivity;
   private translateX = 0;
   private translateY = 0;
   private zoomLevel = DEFAULT_ZOOM_LEVEL;
@@ -106,6 +115,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     this.desktopElement.classList.add("biurko-desktop");
     this.desktopElement.dataset['biurkoType'] = 'desktop';
     this.mode = options?.mode ?? {type: "static"};
+    this.windowInteractivity = options?.windowInteractivity ?? {type: 'all'};
     this.resizeRegionSize = options?.resizeRegionSize ?? DEFAULT_RESIZE_REGION_SIZE;
     this.positionStrategy = options?.positionStrategy ?? {type: "required"};
 
@@ -185,7 +195,10 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     surface.classList.add("biurko-surface");
     surface.style.height = "100%";
     surface.style.overflow = "hidden";
-    surface.style.pointerEvents = "none";
+
+    if (this.windowInteractivity.type === 'focused-only') {
+      surface.style.pointerEvents = "none";
+    }
 
     if (this.mode.type === "infinite-canvas") {
       // Prevent wheel scrolling over an unscrollable window from chaining into the canvas.
@@ -268,7 +281,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
       if (state.handle === handle) continue;
 
       // Currently focused window needs to stop receiving pointer events.
-      if (state.orderIdx === 0) {
+      if (this.windowInteractivity.type === 'focused-only' && state.orderIdx === 0) {
         state.surface.style.pointerEvents = "none";
       }
 
