@@ -338,12 +338,12 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
       }
     }
 
+    this.applyWindowOrdering();
+
     const nextFocusedWindow = this.getFocusedWindow();
     if (nextFocusedWindow) {
       this.focusWindow(nextFocusedWindow);
     }
-
-    this.applyWindowOrdering();
 
     this.dispatchEvent(new CustomEvent<WindowClosedEventDetail>("window-closed", {
       detail: {handle},
