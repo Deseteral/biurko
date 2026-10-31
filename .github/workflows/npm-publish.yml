@@ -1,0 +1,76 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Base version to publish, e.g. 0.1.0 (defaults to the version in package.json); -SNAPSHOT is appended if missing"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Set up npm
+        run: npm install --global npm@11.20.0
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Determine version
+        id: version
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          TAG_NAME: ${{ github.ref_name }}
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            VERSION="${TAG_NAME#v}"
+
+            if [[ "$VERSION" != "$PKG_VERSION" ]]; then
+              echo "Tag version $VERSION does not match package.json version $PKG_VERSION" >&2
+              exit 1
+            fi
+
+            DIST_TAG=latest
+          else
+            VERSION="${VERSION_INPUT:-$PKG_VERSION}"
+            VERSION="${VERSION%-SNAPSHOT}-SNAPSHOT.${GITHUB_RUN_NUMBER}"
+            DIST_TAG=snapshot
+          fi
+
+          echo "Publishing $VERSION (dist-tag: $DIST_TAG)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "dist-tag=$DIST_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Set package version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: npm version "$VERSION" --no-git-tag-version --allow-same-version
+
+      - name: Publish
+        env:
+          DIST_TAG: ${{ steps.version.outputs.dist-tag }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --tag "$DIST_TAG" --provenance
