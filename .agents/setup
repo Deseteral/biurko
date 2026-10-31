@@ -3,7 +3,12 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-# Bun and Node.js are provided by the orb base image.
-echo "Using Bun $(bun --version) and Node.js $(node --version)"
-echo "Installing dependencies from bun.lock"
-time bun install --frozen-lockfile
+# Node.js is provided by the orb base image.
+if [[ "$(npm --version)" != "11.20.0" ]]; then
+  echo "Installing npm 11.20.0"
+  time npm install --global npm@11.20.0
+fi
+
+echo "Using Node.js $(node --version) and npm $(npm --version)"
+echo "Installing dependencies from package-lock.json"
+time npm ci

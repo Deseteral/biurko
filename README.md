@@ -10,29 +10,32 @@ npm install --save @deseteral/biurko
 
 ### Setup
 
-- [Bun](https://bun.sh/) runtime and package manager.
 - Node.js `^22.18.0 || ^24.11.0 || >=26.0.0` for [Vite+](https://viteplus.dev/).
+- npm 11.20.0 (the version pinned in `package.json` and used by CI and orb setup).
 
-Use `bun install --frozen-lockfile` to install dependencies. Vite+ is installed locally; no global `vp` installation is required.
+If needed, install the pinned npm version with `npm install --global npm@11.20.0`, then run `npm ci` to install dependencies from `package-lock.json`. Vite+ is installed locally; no global `vp` installation is required.
+
+The project’s `.npmrc` saves exact dependency versions, disables install lifecycle scripts, and requires newly resolved package versions to be at least 31 days old. The release-age setting requires npm 11.10.0 or newer.
 
 | Command                | Description                                            |
 | ---------------------- | ------------------------------------------------------ |
-| `bun run build`        | Build the ESM library and declarations with `vp pack`. |
-| `bun run build:demo`   | Build all three demo pages with `vp build`.            |
-| `bun run demo`         | Start the Vite+ dev server with the demo app.          |
-| `bun run typecheck`    | Run TypeScript type checking.                          |
-| `bun run test`         | Run the existing Bun test command.                     |
-| `bun run format`       | Format the project with Vite+ (Oxfmt).                 |
-| `bun run format:check` | Check formatting without modifying files.              |
+| `npm run build`        | Build the ESM library and declarations with `vp pack`. |
+| `npm run build:demo`   | Build all three demo pages with `vp build`.            |
+| `npm run demo`         | Start the Vite+ dev server with the demo app.          |
+| `npm run typecheck`    | Run TypeScript type checking.                          |
+| `npm run format`       | Format the project with Vite+ (Oxfmt).                 |
+| `npm run format:check` | Check formatting without modifying files.              |
 
-`vp pack` builds the library; `vp build demo/` builds the demo application. To run these local commands directly, use `bunx --no-install vp`. The test runner remains Bun.
+`vp pack` builds the library; `vp build demo/` builds the demo application. To run these local commands directly, use `npm exec --no -- vp`. There are currently no tests or test script.
 
-Formatting uses the `fmt` block in `vite.config.ts` and the existing `.editorconfig` style. `vp check` checks formatting only: linting is disabled for now, and type checking remains available separately through `bun run typecheck`.
+Formatting uses the `fmt` block in `vite.config.ts` and the existing `.editorconfig` style. `vp check` checks formatting only: linting is disabled for now, and type checking remains available separately through `npm run typecheck`.
+
+CI runs formatting checks, type checking, and both builds on pushes and pull requests. Orb setup installs the pinned npm version when needed and runs `npm ci`; resume requires no additional setup.
 
 ### Demo app
 
 ```sh
-bun run demo
+npm run demo
 ```
 
 This starts a local dev server serving the `demo/` directory. There are three demo apps available:
