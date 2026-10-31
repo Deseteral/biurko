@@ -1,27 +1,43 @@
 {
   "name": "@deseteral/biurko",
   "version": "0.1.0",
+  "description": "A browser window manager with React and SolidJS adapters.",
+  "homepage": "https://github.com/Deseteral/biurko#readme",
+  "bugs": {
+    "url": "https://github.com/Deseteral/biurko/issues"
+  },
+  "license": "MIT",
+  "author": "Deseteral",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Deseteral/biurko.git"
+  },
   "files": [
     "dist"
   ],
   "type": "module",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./adapters/solid-js": {
-      "import": "./dist/adapters/solid-js/index.js",
-      "types": "./dist/adapters/solid-js/index.d.ts"
+      "types": "./dist/adapters/solid-js/index.d.ts",
+      "import": "./dist/adapters/solid-js/index.js"
     },
     "./adapters/react": {
-      "import": "./dist/adapters/react/index.js",
-      "types": "./dist/adapters/react/index.d.ts"
+      "types": "./dist/adapters/react/index.d.ts",
+      "import": "./dist/adapters/react/index.js"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "vp pack",
     "build:demo": "vp build demo/",
+    "prepack": "npm run typecheck && npm run build",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "format": "vp fmt",
