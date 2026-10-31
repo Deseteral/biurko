@@ -1,21 +1,19 @@
-import { resolve } from "node:path";
-import { defineConfig } from "vite";
+import { defineConfig } from "vite-plus";
 import solidPlugin from "vite-plugin-solid";
 
 export default defineConfig({
-  plugins: [solidPlugin()],
-  build: {
-    lib: {
-      entry: {
-        index: resolve(__dirname, "src/index.ts"),
-        "adapters/solid-js/index": resolve(__dirname, "src/adapters/solid-js/index.ts"),
-        "adapters/react/index": resolve(__dirname, "src/adapters/react/index.ts"),
-      },
-      formats: ["es"],
+  pack: {
+    entry: {
+      index: "src/index.ts",
+      "adapters/solid-js/index": "src/adapters/solid-js/index.ts",
+      "adapters/react/index": "src/adapters/react/index.ts",
     },
+    format: ["esm"],
+    platform: "browser",
+    dts: true,
+    plugins: [solidPlugin({ include: /solid-js/, dev: false, hot: false })],
     outDir: "dist",
-    emptyOutDir: true,
-    rollupOptions: {
+    inputOptions: {
       external: ["solid-js", "solid-js/web", "react", "react-dom", "react/jsx-runtime"],
     },
   },

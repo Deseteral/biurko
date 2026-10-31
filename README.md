@@ -11,15 +11,19 @@ npm install --save @deseteral/biurko
 ### Setup
 
 - [Bun](https://bun.sh/) runtime and package manager.
+- Node.js `^22.18.0 || ^24.11.0 || >=26.0.0` for [Vite+](https://viteplus.dev/).
 
-Use `bun` to install dependencies.
+Use `bun install --frozen-lockfile` to install dependencies. Vite+ is installed locally; no global `vp` installation is required.
 
-| Command             | Description                         |
-|---------------------|-------------------------------------|
-| `bun run build`     | Build the library.                  |
-| `bun run demo`      | Start dev server with the demo app. |
-| `bun run typecheck` | Run TypeScript type checking.       |
-| `bun run lint`      | Run ESLint.                         |
+| Command              | Description                                           |
+|----------------------|-------------------------------------------------------|
+| `bun run build`       | Build the ESM library and declarations with `vp pack`. |
+| `bun run build:demo`  | Build all three demo pages with `vp build`.            |
+| `bun run demo`        | Start the Vite+ dev server with the demo app.           |
+| `bun run typecheck`   | Run TypeScript type checking.                         |
+| `bun run test`        | Run the existing Bun test command.                     |
+
+`vp pack` builds the library; `vp build demo/` builds the demo application. To run these local commands directly, use `bunx --no-install vp`. The test runner remains Bun. Linting and formatting are not configured.
 
 ### Demo app
 
