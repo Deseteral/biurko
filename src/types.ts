@@ -30,6 +30,14 @@ export interface CreateWindowOptions {
   /** Initial height of the window in pixels. */
   height: number;
 
+  /**
+   * Whether the window can be resized by the user.
+   * Does not affect programmatic resizing via {@link WindowManager.resizeWindow}.
+   *
+   * @defaultValue `true`
+   */
+  resizable?: boolean;
+
   /** Minimum width constraint enforced during resize. Defaults to `0`. */
   minWidth?: number;
 

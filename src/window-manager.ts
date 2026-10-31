@@ -235,18 +235,20 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     element.appendChild(surface);
 
     // Create resize regions.
-    for (const direction of RESIZE_DIRECTIONS) {
-      const resizeRegion = document.createElement("div");
-      resizeRegion.dataset["resizeDirection"] = direction;
-      applyResizeRegionStyles(resizeRegion, direction, this.resizeRegionSize);
+    if (options.resizable ?? true) {
+      for (const direction of RESIZE_DIRECTIONS) {
+        const resizeRegion = document.createElement("div");
+        resizeRegion.dataset["resizeDirection"] = direction;
+        applyResizeRegionStyles(resizeRegion, direction, this.resizeRegionSize);
 
-      resizeRegion.addEventListener("mousedown", (e: MouseEvent): void => {
-        e.stopPropagation();
-        this.resizeState.start(handle, direction, e.clientX, e.clientY);
-        this.focusWindow(handle);
-      });
+        resizeRegion.addEventListener("mousedown", (e: MouseEvent): void => {
+          e.stopPropagation();
+          this.resizeState.start(handle, direction, e.clientX, e.clientY);
+          this.focusWindow(handle);
+        });
 
-      element.appendChild(resizeRegion);
+        element.appendChild(resizeRegion);
+      }
     }
 
     // Add window to the DOM.
