@@ -43,6 +43,11 @@ export function createDragState(wm: WindowManager<unknown>): DragState {
 
       const origin = wm.clientToWorld(clientX, clientY);
 
+      // Dragging tears the window off its parent only when the relationship opts in, keeping descendants attached.
+      if (wm.getWindowParentOptions(handle).detachOnDrag) {
+        wm.detachWindowFromParent(handle);
+      }
+
       activeHandle = handle;
       offsetX = origin.x - rect.x;
       offsetY = origin.y - rect.y;

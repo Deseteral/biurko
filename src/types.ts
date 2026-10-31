@@ -85,4 +85,17 @@ export type DesktopMode =
  */
 export type WindowInteractivity =
   | { readonly type: "all" }
-  | { readonly type: "focused-only" }
+  | { readonly type: "focused-only" };
+
+/**
+ * Configuration for a parent-child window relationship
+ * (see {@link WindowManager.attachWindowToParent}).
+ */
+export interface WindowParentOptions {
+  /**
+   * Determines whether dragging a window tears it off its parent.
+   *
+   * @defaultValue `false`
+   */
+  detachOnDrag?: boolean;
+}

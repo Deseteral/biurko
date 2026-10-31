@@ -1,4 +1,4 @@
-import {WindowManager} from "../src/index.ts";
+import {type WindowHandle, WindowManager} from "../src/index.ts";
 
 const desktopElement = document.getElementById("desktop")!;
 const desktopButtonsContainerElement = document.createElement('div');
@@ -19,7 +19,7 @@ wm.addEventListener("window-moved", (e) => console.log("window-moved", e.detail)
 wm.addEventListener("window-resized", (e) => console.log("window-resized", e.detail));
 wm.addEventListener("viewport-translated", (e) => console.log("viewport-translated", e.detail));
 
-function openTestWindow(title: string, x: number, y: number): void {
+function openTestWindow(title: string, x: number, y: number): WindowHandle {
   const handle = wm.createWindow({title, x, y, width: 320, height: 240, minWidth: 160, minHeight: 120});
 
   const surface = wm.getWindowSurface(handle)!;
@@ -39,12 +39,36 @@ function openTestWindow(title: string, x: number, y: number): void {
   surface.appendChild(titleBar);
   surface.appendChild(info);
   surface.appendChild(closeBtn);
+
+  return handle;
 }
 
 const openTestWindowBtn = document.createElement('button');
 openTestWindowBtn.textContent = "Open test window"
 openTestWindowBtn.addEventListener("click", () => openTestWindow("Test window", 10, 10));
 desktopButtonsContainerElement.appendChild(openTestWindowBtn);
+
+const openTreeBtn = document.createElement('button');
+openTreeBtn.textContent = "Open parent-child tree";
+openTreeBtn.addEventListener("click", () => {
+  const parent = openTestWindow("Tree parent", 640, 60);
+  const child = openTestWindow("Tree child", 760, 180);
+  const grandchild = openTestWindow("Tree grandchild", 880, 300);
+  wm.attachWindowToParent(child, parent);
+  wm.attachWindowToParent(grandchild, child);
+});
+desktopButtonsContainerElement.appendChild(openTreeBtn);
+
+const openDetachingTreeBtn = document.createElement('button');
+openDetachingTreeBtn.textContent = "Open parent-child tree (detach on drag)";
+openDetachingTreeBtn.addEventListener("click", () => {
+  const parent = openTestWindow("Detaching tree parent", 640, 60);
+  const child = openTestWindow("Detaching tree child", 760, 180);
+  const grandchild = openTestWindow("Detaching tree grandchild", 880, 300);
+  wm.attachWindowToParent(child, parent, {detachOnDrag: true});
+  wm.attachWindowToParent(grandchild, child);
+});
+desktopButtonsContainerElement.appendChild(openDetachingTreeBtn);
 
 const debugResizeBtn = document.createElement('button');
 debugResizeBtn.textContent = "Toggle debug resize regions visualization";

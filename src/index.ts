@@ -1,10 +1,18 @@
-export type { WindowHandle, CreateWindowOptions, WindowRect, WindowPositionStrategy, DesktopMode } from "./types.ts";
+export type {
+  WindowHandle,
+  CreateWindowOptions,
+  WindowRect,
+  WindowPositionStrategy,
+  DesktopMode,
+  WindowParentOptions,
+} from "./types.ts";
 export type {
   WindowOpenedEventDetail,
   WindowClosedEventDetail,
   WindowFocusedEventDetail,
   WindowMovedEventDetail,
   WindowResizedEventDetail,
+  WindowParentChangedEventDetail,
   ViewportTranslatedEventDetail,
   WindowManagerEventMap,
 } from "./events.ts";

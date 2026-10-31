@@ -48,6 +48,18 @@ export interface WindowResizedEventDetail {
   height: number;
 }
 
+/** Event detail emitted when a window's parent relationship changes. */
+export interface WindowParentChangedEventDetail {
+  /** The handle of the window whose parent changed. */
+  handle: WindowHandle;
+
+  /** The previous parent handle, or `null` if the window was a root. */
+  previousParent: WindowHandle | null;
+
+  /** The new parent handle, or `null` if the window has become a root. */
+  parent: WindowHandle | null;
+}
+
 /** Event detail emitted when viewport of the infinite-canvas desktop is translated. */
 export interface ViewportTranslatedEventDetail {
   /** New horizontal translate offset of the world layer, in pixels. */
@@ -63,5 +75,6 @@ export interface WindowManagerEventMap {
   "window-focused": CustomEvent<WindowFocusedEventDetail>;
   "window-moved": CustomEvent<WindowMovedEventDetail>;
   "window-resized": CustomEvent<WindowResizedEventDetail>;
+  "window-parent-changed": CustomEvent<WindowParentChangedEventDetail>;
   "viewport-translated": CustomEvent<ViewportTranslatedEventDetail>;
 }

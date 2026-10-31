@@ -4,6 +4,7 @@ import {
   RESIZE_DIRECTIONS,
   type WindowHandle,
   type WindowInteractivity,
+  type WindowParentOptions,
   type WindowPositionStrategy,
   type WindowRect
 } from "./types.ts";
@@ -13,10 +14,22 @@ import type {
   WindowFocusedEventDetail,
   WindowManagerEventMap,
   WindowOpenedEventDetail,
+  WindowParentChangedEventDetail,
 } from "./events.ts";
 import {createDragState, type DragState} from "./drag-state.ts";
 import {createResizeState, type ResizeState} from "./resize-state.ts";
 import {applyResizeRegionStyles} from "./resize-region-styling.ts";
+
+/**
+ * Parent-child relationship of a window: the parent's handle and its relationship options.
+ */
+interface WindowParent {
+  /** Handle of the parent window. */
+  handle: WindowHandle;
+
+  /** Whether dragging tears the window off this parent. */
+  detachOnDrag: boolean;
+}
 
 interface WindowState<AttachedDataT> {
   handle: WindowHandle;
@@ -27,6 +40,7 @@ interface WindowState<AttachedDataT> {
   minWidth: number;
   minHeight: number;
   orderIdx: number;
+  parentWindow: WindowParent | null;
 }
 
 const DEFAULT_RESIZE_REGION_SIZE = 6;
@@ -239,6 +253,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
       minWidth: options.minWidth ?? 0,
       minHeight: options.minHeight ?? 0,
       orderIdx: this.windows.size, // Put window behind other windows, and let focusing logic handle ordering.
+      parentWindow: null,
     };
     this.windows.set(handle, state);
 
@@ -317,25 +332,23 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   }
 
   /**
-   * Closes and removes the window from the desktop.
-   * The window's DOM element is removed and its internal state is cleaned up.
-   * Dispatches a `"window-closed"` event.
+   * Closes and removes the window together with its complete descendant subtree
+   * The windows' DOM elements are removed and their internal state is cleaned up.
+   * One `"window-closed"` event is dispatched per removed window, descendants first.
    * No-op if the handle is invalid or its window is no longer open.
    *
    * @param handle - The handle of the window to close.
    */
   public closeWindow(handle: WindowHandle): void {
-    const windowState = this.windows.get(handle);
-    if (!windowState) return;
+    const rootWindowState = this.windows.get(handle);
+    if (!rootWindowState) return;
 
-    windowState.element.remove();
-    this.windows.delete(handle);
+    // Reverse to dispatch events from deepest child first.
+    const subtree = this.collectWindowSubtree(handle).reverse();
 
-    // Shift all windows that were behind the closed one forward by one.
-    for (const state of this.windows.values()) {
-      if (state.orderIdx > windowState.orderIdx) {
-        state.orderIdx -= 1;
-      }
+    for (const state of subtree) {
+      state.element.remove();
+      this.windows.delete(state.handle);
     }
 
     this.applyWindowOrdering();
@@ -345,9 +358,111 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
       this.focusWindow(nextFocusedWindow);
     }
 
-    this.dispatchEvent(new CustomEvent<WindowClosedEventDetail>("window-closed", {
-      detail: {handle},
+    for (const state of subtree) {
+      this.dispatchEvent(new CustomEvent<WindowClosedEventDetail>("window-closed", {
+        detail: {handle: state.handle},
+      }));
+    }
+  }
+
+  /**
+   * Attaches a window to another window, forming a parent-child relationship.
+   * Moving the parent moves the complete child subtree (see {@link moveWindow}),
+   * and closing the parent closes the complete child subtree (see {@link closeWindow}).
+   * Attachment does not affect position, size, focus, z-order, or DOM structure.
+   *
+   * Attaching a window to itself or to one of its descendants is rejected.
+   * Attaching a window that already has a parent reparents it with the given options.
+   * No-op if either handle is invalid or the relationship already exists.
+   * Dispatches a `"window-parent-changed"` event on success.
+   *
+   * @param child - The handle of the window to attach.
+   * @param parent - The handle of the window to attach to.
+   * @param options - Configuration of the relationship (see {@link WindowParentOptions}).
+   *   To change the options of an existing relationship, detach the window and attach it again.
+   */
+  public attachWindowToParent(child: WindowHandle, parent: WindowHandle, options?: WindowParentOptions): void {
+    const childState = this.windows.get(child);
+    if (!childState || !this.windows.has(parent)) return;
+    if (child === parent) return;
+    if (childState.parentWindow?.handle === parent) return;
+
+    // Walk up from the proposed parent. Reaching the child would create a cycle.
+    let ancestor: WindowHandle | null = parent;
+    while (ancestor !== null) {
+      if (ancestor === child) return;
+      ancestor = this.windows.get(ancestor)?.parentWindow?.handle ?? null;
+    }
+
+    const previousParent = childState.parentWindow?.handle ?? null;
+    childState.parentWindow = {
+      handle: parent,
+      detachOnDrag: options?.detachOnDrag ?? false,
+    };
+
+    this.dispatchEvent(new CustomEvent<WindowParentChangedEventDetail>("window-parent-changed", {
+      detail: {handle: child, previousParent, parent},
     }));
+  }
+
+  /**
+   * Detaches a window from its parent, turning the window together with its
+   * descendants into an independent root tree. Descendant relationships are preserved.
+   * Relationship options are reset to defaults.
+   * No-op if the handle is invalid or the window has no parent.
+   * Dispatches a `"window-parent-changed"` event on success.
+   *
+   * @param child - The handle of the window to detach.
+   */
+  public detachWindowFromParent(child: WindowHandle): void {
+    const childState = this.windows.get(child);
+    if (!childState || childState.parentWindow === null) return;
+
+    const previousParent = childState.parentWindow?.handle ?? null;
+    childState.parentWindow = null;
+
+    this.dispatchEvent(new CustomEvent<WindowParentChangedEventDetail>("window-parent-changed", {
+      detail: {handle: child, previousParent, parent: null},
+    }));
+  }
+
+  /**
+   * Returns the parent of the given window.
+   *
+   * @param child - The window handle.
+   * @returns The parent handle, or `null` if the window is a root or the handle is invalid.
+   */
+  public getWindowParent(child: WindowHandle): WindowHandle | null {
+    return this.windows.get(child)?.parentWindow?.handle ?? null;
+  }
+
+  /**
+   * Returns the direct children of the given window.
+   *
+   * @param parent - The window handle.
+   * @returns The handles of direct children in creation order. Empty if the window has no children.
+   */
+  public getChildren(parent: WindowHandle): WindowHandle[] {
+    const children: WindowHandle[] = [];
+    for (const state of this.windows.values()) {
+      if (state.parentWindow?.handle === parent) {
+        children.push(state.handle);
+      }
+    }
+    return children;
+  }
+
+  /**
+   * Returns the options of the parent-child relationship of the given window
+   * (see {@link attachWindowToParent}).
+   *
+   * @param child - The window handle.
+   * @returns The relationship options with defaults applied. Defaults are returned
+   *   if the window is a root or the handle is invalid.
+   */
+  public getWindowParentOptions(child: WindowHandle): Required<WindowParentOptions> {
+    const childState = this.windows.get(child);
+    return {detachOnDrag: childState?.parentWindow?.detachOnDrag ?? false};
   }
 
   /**
@@ -412,14 +527,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     const windowState = this.windows.get(handle);
     if (!windowState) return null;
 
-    const el = windowState.element;
-    const originOffset = this.worldOriginOffset;
-    return {
-      x: parsePx(el.style.left) - originOffset,
-      y: parsePx(el.style.top) - originOffset,
-      width: parsePx(el.style.width),
-      height: parsePx(el.style.height),
-    };
+    return this.getWindowRectInWorldCoords(windowState);
   }
 
   /**
@@ -442,13 +550,14 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   }
 
   /** Offset between logical world coordinates and physical offsets inside the world layer. */
+  // TODO: This could be cached.
   private get worldOriginOffset(): number {
     return this.mode.type === "infinite-canvas" ? WORLD_ORIGIN_OFFSET : 0;
   }
 
   /**
    * Returns the current translate offset of the world layer.
-   * The offset is `0,0` unless the mode is `"infinite-canvas"`.
+   * In static mode the offset is always `0,0`.
    *
    * @returns The horizontal and vertical translate offsets in pixels.
    */
@@ -578,22 +687,30 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
    * Move the window to the specified position.
    * The position is clamped so that at least a small portion of the window remains visible
    * within the desktop bounds.
+   * The window's complete descendant subtree (see {@link attachWindowToParent}) is moved
+   * by the same delta, preserving relative positions inside the subtree.
+   * In `"static"` mode only the moved root is clamped to keep a small portion visible
+   * within the desktop bounds; descendants follow rigidly and may overflow the bounds.
    *
    * @param handle - The window handle.
    * @param x - New horizontal position in pixels.
    * @param y - New vertical position in pixels.
    */
   public moveWindow(handle: WindowHandle, x: number, y: number): void {
-    const windowState = this.windows.get(handle);
-    if (!windowState) return;
+    const rootState = this.windows.get(handle);
+    if (!rootState) return;
 
-    const el = windowState.element;
-    const width = parsePx(el.style.width);
+    const rootRect = this.getWindowRectInWorldCoords(rootState);
+    const target = this.clampWindowPositionWithinDesktop(x, y, rootRect.width);
+    const dx = target.x - rootRect.x;
+    const dy = target.y - rootRect.y;
+
     const originOffset = this.worldOriginOffset;
-    const clampedPosition = this.clampWindowPositionWithinDesktop(x, y, width);
-
-    el.style.left = `${clampedPosition.x + originOffset}px`;
-    el.style.top = `${clampedPosition.y + originOffset}px`;
+    for (const state of this.collectWindowSubtree(handle)) {
+      const rect = this.getWindowRectInWorldCoords(state);
+      state.element.style.left = `${rect.x + dx + originOffset}px`;
+      state.element.style.top = `${rect.y + dy + originOffset}px`;
+    }
   }
 
   /**
@@ -671,11 +788,67 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     const sortedWindows = [...this.windows.values()]
       .sort((a, b) => a.orderIdx - b.orderIdx);
 
-    for (let idx = 0; idx < sortedWindows.length; idx += 1) {
-      const state = sortedWindows[idx]!;
+    for (const [idx, state] of sortedWindows.entries()) {
       state.orderIdx = idx;
-      state.element.style.zIndex = String(sortedWindows.length - 1 - state.orderIdx);
+      state.element.style.zIndex = String(sortedWindows.length - 1 - idx);
     }
+  }
+
+  private getWindowRectInWorldCoords(windowState: WindowState<AttachedDataT>): WindowRect {
+    const el = windowState.element;
+    const originOffset = this.worldOriginOffset;
+    return {
+      x: parsePx(el.style.left) - originOffset,
+      y: parsePx(el.style.top) - originOffset,
+      width: parsePx(el.style.width),
+      height: parsePx(el.style.height),
+    };
+  }
+
+  private buildChildrenIndex(): Map<WindowHandle, WindowState<AttachedDataT>[]> {
+    const childrenByParent = new Map<WindowHandle, WindowState<AttachedDataT>[]>();
+
+    for (const state of this.windows.values()) {
+      const parent = state.parentWindow?.handle;
+      if (!parent) continue;
+
+      const children = childrenByParent.get(parent);
+      if (children) {
+        children.push(state);
+      } else {
+        childrenByParent.set(parent, [state]);
+      }
+    }
+
+    return childrenByParent;
+  }
+
+  // TODO: This is totally suboptimal algorithm. If we change how the state of windows are stored in memory we will get
+  //       simpler and faster processing. Current implementation is fine, because computers are fast, but this is not
+  //       what striving for excellence should look like.
+  private collectWindowSubtree(handle: WindowHandle): WindowState<AttachedDataT>[] {
+    const root = this.windows.get(handle);
+    if (!root) return [];
+
+    const childrenByParent = this.buildChildrenIndex();
+    const result: WindowState<AttachedDataT>[] = [];
+    const stack: WindowState<AttachedDataT>[] = [root];
+
+    let current = stack.pop();
+    while (current !== undefined) {
+      result.push(current);
+
+      const children = childrenByParent.get(current.handle);
+      if (children) {
+        for (const child of children) {
+          stack.push(child);
+        }
+      }
+
+      current = stack.pop();
+    }
+
+    return result;
   }
 
   public override addEventListener<K extends keyof WindowManagerEventMap>(
