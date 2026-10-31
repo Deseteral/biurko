@@ -1,6 +1,6 @@
 {
   "name": "@deseteral/biurko",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A browser window manager with React and SolidJS adapters.",
   "homepage": "https://github.com/Deseteral/biurko#readme",
   "bugs": {
