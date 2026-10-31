@@ -3,7 +3,7 @@ import { type WindowManager } from '../../window-manager.ts';
 
 /**
  * A `WindowManager` instance typed for the Solid.js adapter.
- * Each window's attached data is a Solid's component render function.
+ * Each window's attached data is a render function returning a Solid.js JSX element.
  */
 export type SolidJsWindowManager = WindowManager<() => JSX.Element>;
 
@@ -13,6 +13,7 @@ export const BiurkoContext = createContext<SolidJsWindowManager>();
  * Returns the {@link WindowManager} instance from the nearest `<BiurkoDesktop>` ancestor.
  * Use this to create, close, or inspect windows from any component within the desktop tree.
  *
+ * @returns The desktop's window manager, with a content render function attached to each window.
  * @throws Error if called outside of a `<BiurkoDesktop>` component tree.
  */
 export function useWindowManager(): SolidJsWindowManager {

@@ -12,13 +12,15 @@ export interface CreateWindowOptions {
 
   /**
    * Initial horizontal position (in pixels) in desktop coordinate space.
-   * When omitted, the position is determined by the configured {@link WindowPositionStrategy}.
+   * Both `x` and `y` must be supplied to use explicit coordinates. If either is omitted,
+   * the configured {@link WindowPositionStrategy} determines both coordinates.
    */
   x?: number;
 
   /**
    * Initial vertical position (in pixels) in desktop coordinate space.
-   * When omitted, the position is determined by the configured {@link WindowPositionStrategy}.
+   * Both `x` and `y` must be supplied to use explicit coordinates. If either is omitted,
+   * the configured {@link WindowPositionStrategy} determines both coordinates.
    */
   y?: number;
 
@@ -57,6 +59,7 @@ export interface WindowRect {
  *
  * - `"required"` - The caller must always provide `x` and `y`.
  * - `"offset-from-focused"` - The new window is placed at an offset from the currently focused window.
+ *   If no window is focused, the offset is applied to the desktop origin `(0, 0)`.
  */
 export type WindowPositionStrategy =
   | { readonly type: "required" }
@@ -68,7 +71,9 @@ export type ResizeDirection = typeof RESIZE_DIRECTIONS[number];
 /**
  * Determines how the {@link WindowManager} desktop behaves.
  *
- * - `"static"` - The desktop is fixed. Windows are clamped to stay within the visible desktop area.
+ * - `"static"` - The desktop has no wheel-driven panning or zooming. Moving and resizing windows
+ *   clamps their position to keep a small portion visible, not the entire window. Initial placement
+ *   is not clamped, and descendants moved with a parent may overflow the desktop bounds.
  * - `"infinite-canvas"` - The desktop acts as an infinite canvas. Windows live inside a translatable
  *   world layer that can be moved with the mouse wheel or the viewport translate API, and window
  *   placement is not clamped to the viewport.
@@ -78,10 +83,12 @@ export type DesktopMode =
   | { readonly type: "infinite-canvas" };
 
 /**
- * Determines which windows can receive mouse input events.
+ * Determines which window content surfaces can receive pointer input events.
  *
- *  -`"all"` - All windows are always interactive.
- *  -`"focused-only"` - Only currently focused window is interactive.
+ * - `"all"` - All window surfaces are interactive.
+ * - `"focused-only"` - Only the currently focused window's surface is interactive.
+ *
+ * Drag regions (`data-biurko-drag-region`) and resize handles remain interactive in both modes.
  */
 export type WindowInteractivity =
   | { readonly type: "all" }

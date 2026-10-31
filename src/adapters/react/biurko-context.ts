@@ -3,7 +3,7 @@ import { type WindowManager } from '../../window-manager.ts';
 
 /**
  * A `WindowManager` instance typed for the React adapter.
- * Each window's attached data is a React's component render function.
+ * Each window's attached data is a render function returning a React node.
  */
 export type ReactWindowManager = WindowManager<() => ReactNode>;
 
@@ -13,6 +13,7 @@ export const BiurkoContext = createContext<ReactWindowManager | null>(null);
  * Returns the {@link WindowManager} instance from the nearest `<BiurkoDesktop>` ancestor.
  * Use this hook to create, close, or inspect windows from any component within the desktop tree.
  *
+ * @returns The desktop's window manager, with a content render function attached to each window.
  * @throws Error if called outside of a `<BiurkoDesktop>` component tree.
  */
 export function useWindowManager(): ReactWindowManager {

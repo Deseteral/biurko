@@ -25,6 +25,7 @@ export interface BiurkoDesktopProps {
 
   /**
    * Configuration options passed to the underlying {@link WindowManager}.
+   * Read only when the manager is initialized; later changes do not reconfigure it.
    */
   options?: WindowManagerOptions;
 
@@ -45,6 +46,10 @@ export interface BiurkoDesktopProps {
  *
  * Place your application UI (taskbar, menus, controls) as `children` - they will have access to
  * the window manager through the {@link useWindowManager} function.
+ * Pass a content render function as the second argument to the manager's `createWindow` method.
+ *
+ * @param props - Desktop configuration, child UI, and optional window content decorator.
+ * @returns The desktop container with child UI and window portals once initialized.
  */
 export function BiurkoDesktop(props: BiurkoDesktopProps): JSX.Element {
   const [windowManager, setWindowManager] = createSignal<SolidJsWindowManager>();

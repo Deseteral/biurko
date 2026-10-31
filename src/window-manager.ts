@@ -60,7 +60,8 @@ const DRAG_REGION_SELECTOR = "[data-biurko-drag-region]";
 /** Configuration options for the {@link WindowManager} constructor. */
 export interface WindowManagerOptions {
   /**
-   * Size (in pixels) of the invisible resize hit regions placed around each window edge and corner.
+   * Distance (in pixels) that invisible resize hit regions extend inside and outside each window edge.
+   * Edge hit regions are twice this value in thickness; corner regions are squares of that size.
    * A larger value makes it easier for users to grab the resize handles.
    *
    * @defaultValue `6`
@@ -92,7 +93,7 @@ export interface WindowManagerOptions {
 /**
  * Core window management class that handles window lifecycle and actions such as drag, resize, focus, and ordering.
  *
- * Dispatches typed events (see {@link WindowManagerEventMap}):
+ * Dispatches typed events (see {@link WindowManagerEventMap}).
  *
  * @typeParam AttachedDataT - Optional data type attached to each window. Use `void` (default) if no
  *   data is needed.
@@ -114,11 +115,14 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
 
   /**
    * Creates a new WindowManager bound to the given container element.
-   * The container acts as the "desktop" area where windows are positioned. A `biurko-desktop` CSS class
-   * is added to it automatically.
+   * The container acts as the "desktop" area where windows are positioned. Its `data-biurko-type`
+   * attribute is set to `"desktop"`, its position is set to `relative`, and the `biurko-desktop`
+   * CSS class is added automatically.
    *
-   * Windows are placed inside an inner `biurko-world` layer. In `"infinite-canvas"` mode this layer
-   * can be translated to pan across the canvas (see {@link getViewportTranslate}).
+   * Windows are placed inside an inner layer with `data-biurko-type="world"`.
+   * In `"infinite-canvas"` mode, scrolling the desktop background pans the canvas and
+   * Shift+wheel zooms around the pointer. Holding Alt also enables these gestures over windows.
+   * Panning is also available through {@link setViewportTranslate}.
    *
    * @param container - The DOM element that serves as the desktop area.
    * @param options - Optional configuration details.
@@ -186,11 +190,13 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   /**
    * Creates a new window and appends it to the desktop's world layer.
    * The window is automatically focused (brought to front) upon creation.
-   * Dispatches a `"window-opened"` event.
+   * Dispatches `"window-focused"` before `"window-opened"`.
+   * Initial position and size are not clamped to desktop bounds or minimum size constraints.
    *
    * @param options - Configuration details (see {@link CreateWindowOptions}).
    * @param args - If `AttachedDataT` is not `void`, the attached data must be passed as the second argument.
    * @returns A unique {@link WindowHandle} identifying the created window.
+   * @throws Error if either coordinate is missing when the position strategy is `"required"`.
    */
   public createWindow(options: CreateWindowOptions, ...args: AttachedDataT extends NoAttachedData ? [] : [data: AttachedDataT]): WindowHandle {
     const handle = crypto.randomUUID() as WindowHandle;
@@ -281,8 +287,8 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
 
   /**
    * Brings the specified window to front.
-   * No-op if the window is already focused.
-   * Dispatches a `"window-focused"` event.
+   * No-op if the handle is invalid.
+   * Dispatches a `"window-focused"` event even if the window is already focused.
    *
    * @param handle - The handle of the window to focus.
    */
@@ -332,7 +338,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   }
 
   /**
-   * Closes and removes the window together with its complete descendant subtree
+   * Closes and removes the window together with its complete descendant subtree.
    * The windows' DOM elements are removed and their internal state is cleaned up.
    * One `"window-closed"` event is dispatched per removed window, descendants first.
    * No-op if the handle is invalid or its window is no longer open.
@@ -509,7 +515,8 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
    * The data type is determined by the `AttachedDataT` generic parameter.
    *
    * @param handle - The window handle.
-   * @returns The attached data, or `null` if the handle is invalid or no data was provided.
+   * @returns The attached data, or `null` if the handle is invalid or the stored data is falsy
+   *   (including when no data was provided).
    */
   public getWindowData(handle: WindowHandle): AttachedDataT | null {
     const windowState = this.windows.get(handle);
@@ -556,8 +563,9 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   }
 
   /**
-   * Returns the current translate offset of the world layer.
-   * In static mode the offset is always `0,0`.
+   * Returns the stored viewport translation, initially `{ x: 0, y: 0 }`.
+   * This is the requested offset, which may differ from the actual scroll position
+   * when the browser clamps scrolling at the world bounds.
    *
    * @returns The horizontal and vertical translate offsets in pixels.
    */
@@ -566,10 +574,11 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   }
 
   /**
-   * Sets the translation offset of the world layer.
-   * In `"infinite-canvas"` mode the offset is center-origin and bounded to approximately
-   * `±100000` px per axis (the size of the scrollable world).
-   * Dispatches a `"viewport-translated"` event when the offset changes.
+   * Stores a viewport translation and updates the inner container's scroll position.
+   * Intended for `"infinite-canvas"` mode, where positive offsets pan the world right and down.
+   * The stored offsets are not clamped, but the browser limits the actual scroll position
+   * to the scrollable world bounds. Static mode does not ignore or reset these offsets.
+   * Dispatches a `"viewport-translated"` event when the stored offset changes.
    *
    * @param x - New horizontal offset in pixels.
    * @param y - New vertical offset in pixels.
@@ -600,6 +609,8 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
 
   /**
    * Sets the scale of the world layer.
+   * Values below `0.1` are clamped to `0.1`; there is no maximum.
+   * Applies in both desktop modes and does not adjust the viewport translation.
    *
    * @param level - The scale applied to the world layer.
    */
@@ -610,7 +621,8 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   }
 
   /**
-   * Scale the world layer by `delta` amount.
+   * Adds `delta` to the current zoom level (see {@link setZoomLevel}).
+   * This is an additive change, not a multiplication of the scale.
    *
    * @param delta - The delta applied to the world layer scale.
    */
@@ -619,14 +631,15 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   }
 
 
-  /** Resets the infinite-canvas zoom level to its default value. */
+  /** Resets the world layer's zoom level to `1` without changing the viewport translation. */
   public resetZoomLevel(): void {
     this.setZoomLevel(DEFAULT_ZOOM_LEVEL);
   }
 
   /**
    * Returns the scale of the world layer.
-   * @returns current scale of world layer.
+   *
+   * @returns The current zoom level, initially `1` and at least `0.1`.
    */
   public getZoomLevel(): number {
     return this.zoomLevel;
@@ -647,7 +660,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
 
   /**
    * Converts viewport (client) coordinates to desktop world coordinates,
-   * taking the current viewport translate into account.
+   * taking the desktop's position, actual scroll offsets, and zoom level into account.
    *
    * @param clientX - Horizontal position in client (viewport) coordinates.
    * @param clientY - Vertical position in client (viewport) coordinates.
@@ -684,13 +697,14 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   }
 
   /**
-   * Move the window to the specified position.
-   * The position is clamped so that at least a small portion of the window remains visible
-   * within the desktop bounds.
+   * Moves the window to the specified position in desktop coordinate space.
    * The window's complete descendant subtree (see {@link attachWindowToParent}) is moved
    * by the same delta, preserving relative positions inside the subtree.
    * In `"static"` mode only the moved root is clamped to keep a small portion visible
    * within the desktop bounds; descendants follow rigidly and may overflow the bounds.
+   * In `"infinite-canvas"` mode positions are not clamped.
+   * No-op if the handle is invalid. Does not dispatch `"window-moved"`;
+   * that event is dispatched only when a drag gesture completes, for the dragged window.
    *
    * @param handle - The window handle.
    * @param x - New horizontal position in pixels.
@@ -715,12 +729,16 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
 
   /**
    * Resizes and repositions the window.
-   * The size is clamped to the minimum constraints (`minWidth`/`minHeight`) and the position
-   * is clamped to keep the window within desktop bounds.
+   * The size is clamped to the minimum constraints (`minWidth`/`minHeight`).
+   * In `"static"` mode the position is clamped to keep a small portion of the window visible;
+   * in `"infinite-canvas"` mode the position is not clamped.
+   * Descendant windows are not moved or resized.
+   * No-op if the handle is invalid. Does not dispatch `"window-resized"`;
+   * that event is dispatched only when a resize gesture completes.
    *
    * @param handle - The window handle.
-   * @param x - New horizontal position in pixels.
-   * @param y - New vertical position in pixels.
+   * @param x - New horizontal position in pixels in desktop coordinate space.
+   * @param y - New vertical position in pixels in desktop coordinate space.
    * @param width - New width in pixels (will be clamped to `minWidth`).
    * @param height - New height in pixels (will be clamped to `minHeight`).
    */
@@ -851,16 +869,31 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     return result;
   }
 
+  /**
+   * Registers a listener for a window manager event with a typed event payload.
+   *
+   * @param type - The window manager event name.
+   * @param listener - Callback receiving the event and its detail payload.
+   * @param options - Standard DOM listener options or the capture flag.
+   */
   public override addEventListener<K extends keyof WindowManagerEventMap>(
     type: K,
     listener: (event: WindowManagerEventMap[K]) => void,
     options?: boolean | AddEventListenerOptions,
   ): void;
+  /**
+   * Registers a listener for any event using the standard {@link EventTarget} API.
+   *
+   * @param type - The event name.
+   * @param listener - Callback or object whose `handleEvent` method receives the event.
+   * @param options - Standard DOM listener options or the capture flag.
+   */
   public override addEventListener(
     type: string,
     listener: EventListenerOrEventListenerObject,
     options?: boolean | AddEventListenerOptions,
   ): void;
+  /** Registers an event listener; see the overloads for typed and generic event listeners. */
   public override addEventListener(
     type: string,
     listener: EventListenerOrEventListenerObject | ((event: CustomEvent) => void),
@@ -869,16 +902,31 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     super.addEventListener(type, listener as EventListener, options);
   }
 
+  /**
+   * Removes a listener for a typed window manager event.
+   *
+   * @param type - The window manager event name used during registration.
+   * @param listener - The same callback passed to {@link addEventListener}.
+   * @param options - Listener options; the capture flag must match the registration.
+   */
   public override removeEventListener<K extends keyof WindowManagerEventMap>(
     type: K,
     listener: (event: WindowManagerEventMap[K]) => void,
     options?: boolean | EventListenerOptions,
   ): void;
+  /**
+   * Removes a listener using the standard {@link EventTarget} API.
+   *
+   * @param type - The event name used during registration.
+   * @param listener - The same callback or listener object used during registration.
+   * @param options - Listener options; the capture flag must match the registration.
+   */
   public override removeEventListener(
     type: string,
     listener: EventListenerOrEventListenerObject,
     options?: boolean | EventListenerOptions,
   ): void;
+  /** Removes an event listener; see the overloads for typed and generic event listeners. */
   public override removeEventListener(
     type: string,
     listener: EventListenerOrEventListenerObject | ((event: CustomEvent) => void),

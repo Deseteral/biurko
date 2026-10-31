@@ -12,39 +12,46 @@ export interface WindowClosedEventDetail {
   handle: WindowHandle;
 }
 
-/** Event detail emitted when a window is brought to front. */
+/** Event detail emitted by a successful focus call, even if the window was already focused. */
 export interface WindowFocusedEventDetail {
   /** The handle of the focused window. */
   handle: WindowHandle;
 }
 
-/** Event detail emitted when a window drag operation completes. */
+/**
+ * Event detail emitted when a window drag gesture completes, even if its position did not change.
+ * Only the dragged window emits this event, not descendants moved with it.
+ * Programmatic calls to `moveWindow` do not emit this event.
+ */
 export interface WindowMovedEventDetail {
   /** The handle of the moved window. */
   handle: WindowHandle;
 
-  /** The new horizontal position after the move. */
+  /** The horizontal position after the drag, in pixels in desktop coordinate space. */
   x: number;
 
-  /** The new vertical position after the move. */
+  /** The vertical position after the drag, in pixels in desktop coordinate space. */
   y: number;
 }
 
-/** Event detail emitted when a window resize operation completes. */
+/**
+ * Event detail emitted when a window resize gesture completes, even if its size did not change.
+ * Programmatic calls to `resizeWindow` do not emit this event.
+ */
 export interface WindowResizedEventDetail {
   /** The handle of the resized window. */
   handle: WindowHandle;
 
-  /** The new horizontal position after the resize. */
+  /** The horizontal position after the resize, in pixels in desktop coordinate space. */
   x: number;
 
-  /** The new vertical position after the resize. */
+  /** The vertical position after the resize, in pixels in desktop coordinate space. */
   y: number;
 
-  /** The new width after the resize. */
+  /** The width after the resize, in pixels. */
   width: number;
 
-  /** The new height after the resize. */
+  /** The height after the resize, in pixels. */
   height: number;
 }
 
@@ -60,7 +67,10 @@ export interface WindowParentChangedEventDetail {
   parent: WindowHandle | null;
 }
 
-/** Event detail emitted when viewport of the infinite-canvas desktop is translated. */
+/**
+ * Event detail emitted when the stored viewport translation changes.
+ * Offsets are the requested values and may differ from the browser-clamped scroll position.
+ */
 export interface ViewportTranslatedEventDetail {
   /** New horizontal translate offset of the world layer, in pixels. */
   x: number;
@@ -69,6 +79,7 @@ export interface ViewportTranslatedEventDetail {
   y: number;
 }
 
+/** Maps window manager event names to their custom event payloads. */
 export interface WindowManagerEventMap {
   "window-opened": CustomEvent<WindowOpenedEventDetail>;
   "window-closed": CustomEvent<WindowClosedEventDetail>;
