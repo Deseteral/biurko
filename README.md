@@ -35,4 +35,4 @@ This starts a local dev server serving the `demo/` directory. There are three de
 
 ## License
 
-TODO
+This project is licensed under the [MIT license](LICENSE).
