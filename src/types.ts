@@ -24,11 +24,15 @@ export interface CreateWindowOptions {
    */
   y?: number;
 
-  /** Initial width of the window in pixels. */
-  width: number;
+  /**
+   * Initial width in pixels. Omit to track the content's intrinsic (max-content) width.
+   */
+  width?: number;
 
-  /** Initial height of the window in pixels. */
-  height: number;
+  /**
+   * Initial height in pixels. Omit to track the content's height at the current width.
+   */
+  height?: number;
 
   /**
    * Whether the window can be resized by the user.

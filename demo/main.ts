@@ -48,6 +48,32 @@ openTestWindowBtn.textContent = "Open test window";
 openTestWindowBtn.addEventListener("click", () => openTestWindow("Test window", 10, 10));
 desktopButtonsContainerElement.appendChild(openTestWindowBtn);
 
+const openAutoSizeWindowBtn = document.createElement("button");
+openAutoSizeWindowBtn.textContent = "Open content-sized window";
+openAutoSizeWindowBtn.addEventListener("click", () => {
+  const handle = wm.createWindow({ title: "Content-sized", x: 320, y: 360 });
+  const surface = wm.getWindowSurface(handle)!;
+  const titleBar = document.createElement("div");
+  titleBar.classList.add("title-bar");
+  titleBar.dataset["biurkoDragRegion"] = "";
+  titleBar.textContent = "Content-sized · drag me";
+
+  const content = document.createElement("div");
+  content.style.whiteSpace = "pre";
+  content.textContent = "Short menu";
+
+  const toggle = document.createElement("button");
+  toggle.textContent = "Toggle content";
+  let expanded = false;
+  toggle.addEventListener("click", () => {
+    expanded = !expanded;
+    content.textContent = expanded ? "A longer menu item grows the window\nSecond item\nThird item" : "Short menu";
+  });
+
+  surface.append(titleBar, content, toggle);
+});
+desktopButtonsContainerElement.appendChild(openAutoSizeWindowBtn);
+
 const openTreeBtn = document.createElement("button");
 openTreeBtn.textContent = "Open parent-child tree";
 openTreeBtn.addEventListener("click", () => {

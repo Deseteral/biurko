@@ -193,6 +193,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
    * The window is automatically focused (brought to front) upon creation.
    * Dispatches `"window-focused"` before `"window-opened"`.
    * Initial position and size are not clamped to desktop bounds or minimum size constraints.
+   * If width or height is omitted, that dimension automatically grows and shrinks to fit the content.
    *
    * @param options - Configuration details (see {@link CreateWindowOptions}).
    * @param args - If `AttachedDataT` is not `void`, the attached data must be passed as the second argument.
@@ -215,13 +216,13 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     const originOffset = this.worldOriginOffset;
     element.style.left = `${position.x + originOffset}px`;
     element.style.top = `${position.y + originOffset}px`;
-    element.style.width = `${options.width}px`;
-    element.style.height = `${options.height}px`;
+    element.style.width = options.width === undefined ? "max-content" : `${options.width}px`;
+    element.style.height = options.height === undefined ? "auto" : `${options.height}px`;
 
     // Create container for user content (including window chrome).
     const surface = document.createElement("div");
     surface.classList.add("biurko-surface");
-    surface.style.height = "100%";
+    surface.style.height = options.height === undefined ? "auto" : "100%";
     surface.style.overflow = "hidden";
 
     if (!(options.interactive ?? this.windowInteractivity.type === "all")) {
@@ -745,6 +746,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   /**
    * Resizes and repositions the window.
    * The size is clamped to the minimum constraints (`minWidth`/`minHeight`).
+   * Pins both dimensions to explicit pixel sizes.
    * In `"static"` mode the position is clamped to keep a small portion of the window visible;
    * in `"infinite-canvas"` mode the position is not clamped.
    * Descendant windows are not moved or resized.
@@ -771,6 +773,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     el.style.top = `${clampedPosition.y + originOffset}px`;
     el.style.width = `${clampedWidth}px`;
     el.style.height = `${clampedHeight}px`;
+    windowState.surface.style.height = "100%";
   }
 
   /** Clamp position so that at least `margin` pixels of the window remain visible within the container. */
@@ -829,11 +832,14 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   private getWindowRectInWorldCoords(windowState: WindowState<AttachedDataT>): WindowRect {
     const el = windowState.element;
     const originOffset = this.worldOriginOffset;
+    const autoWidth = el.style.width === "max-content";
+    const autoHeight = el.style.height === "auto";
+    const measuredRect = autoWidth || autoHeight ? el.getBoundingClientRect() : null;
     return {
       x: parsePx(el.style.left) - originOffset,
       y: parsePx(el.style.top) - originOffset,
-      width: parsePx(el.style.width),
-      height: parsePx(el.style.height),
+      width: autoWidth ? measuredRect!.width / this.zoomLevel : parsePx(el.style.width),
+      height: autoHeight ? measuredRect!.height / this.zoomLevel : parsePx(el.style.height),
     };
   }
 
