@@ -15,15 +15,19 @@ npm install --save @deseteral/biurko
 
 Use `bun install --frozen-lockfile` to install dependencies. Vite+ is installed locally; no global `vp` installation is required.
 
-| Command              | Description                                           |
-|----------------------|-------------------------------------------------------|
-| `bun run build`       | Build the ESM library and declarations with `vp pack`. |
-| `bun run build:demo`  | Build all three demo pages with `vp build`.            |
-| `bun run demo`        | Start the Vite+ dev server with the demo app.           |
-| `bun run typecheck`   | Run TypeScript type checking.                         |
-| `bun run test`        | Run the existing Bun test command.                     |
+| Command                | Description                                            |
+| ---------------------- | ------------------------------------------------------ |
+| `bun run build`        | Build the ESM library and declarations with `vp pack`. |
+| `bun run build:demo`   | Build all three demo pages with `vp build`.            |
+| `bun run demo`         | Start the Vite+ dev server with the demo app.          |
+| `bun run typecheck`    | Run TypeScript type checking.                          |
+| `bun run test`         | Run the existing Bun test command.                     |
+| `bun run format`       | Format the project with Vite+ (Oxfmt).                 |
+| `bun run format:check` | Check formatting without modifying files.              |
 
-`vp pack` builds the library; `vp build demo/` builds the demo application. To run these local commands directly, use `bunx --no-install vp`. The test runner remains Bun. Linting and formatting are not configured.
+`vp pack` builds the library; `vp build demo/` builds the demo application. To run these local commands directly, use `bunx --no-install vp`. The test runner remains Bun.
+
+Formatting uses the `fmt` block in `vite.config.ts` and the existing `.editorconfig` style. `vp check` checks formatting only: linting is disabled for now, and type checking remains available separately through `bun run typecheck`.
 
 ### Demo app
 

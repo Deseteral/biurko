@@ -1,15 +1,15 @@
-import {type WindowHandle, WindowManager} from "../src/index.ts";
+import { type WindowHandle, WindowManager } from "../src/index.ts";
 
 const desktopElement = document.getElementById("desktop")!;
-const desktopButtonsContainerElement = document.createElement('div');
-desktopButtonsContainerElement.classList.add('desktop-button-list')
-desktopButtonsContainerElement.textContent = 'Desktop'
+const desktopButtonsContainerElement = document.createElement("div");
+desktopButtonsContainerElement.classList.add("desktop-button-list");
+desktopButtonsContainerElement.textContent = "Desktop";
 desktopElement.appendChild(desktopButtonsContainerElement);
 
 const wm = new WindowManager(desktopElement, {
-  mode: {type: "infinite-canvas"},
-  positionStrategy: {type: "offset-from-focused", offsetX: 20, offsetY: 20},
-  windowInteractivity: {type: "focused-only"},
+  mode: { type: "infinite-canvas" },
+  positionStrategy: { type: "offset-from-focused", offsetX: 20, offsetY: 20 },
+  windowInteractivity: { type: "focused-only" },
 });
 
 wm.addEventListener("window-opened", (e) => console.log("window-opened", e.detail));
@@ -20,7 +20,7 @@ wm.addEventListener("window-resized", (e) => console.log("window-resized", e.det
 wm.addEventListener("viewport-translated", (e) => console.log("viewport-translated", e.detail));
 
 function openTestWindow(title: string, x: number, y: number): WindowHandle {
-  const handle = wm.createWindow({title, x, y, width: 320, height: 240, minWidth: 160, minHeight: 120});
+  const handle = wm.createWindow({ title, x, y, width: 320, height: 240, minWidth: 160, minHeight: 120 });
 
   const surface = wm.getWindowSurface(handle)!;
 
@@ -43,12 +43,12 @@ function openTestWindow(title: string, x: number, y: number): WindowHandle {
   return handle;
 }
 
-const openTestWindowBtn = document.createElement('button');
-openTestWindowBtn.textContent = "Open test window"
+const openTestWindowBtn = document.createElement("button");
+openTestWindowBtn.textContent = "Open test window";
 openTestWindowBtn.addEventListener("click", () => openTestWindow("Test window", 10, 10));
 desktopButtonsContainerElement.appendChild(openTestWindowBtn);
 
-const openTreeBtn = document.createElement('button');
+const openTreeBtn = document.createElement("button");
 openTreeBtn.textContent = "Open parent-child tree";
 openTreeBtn.addEventListener("click", () => {
   const parent = openTestWindow("Tree parent", 640, 60);
@@ -59,45 +59,45 @@ openTreeBtn.addEventListener("click", () => {
 });
 desktopButtonsContainerElement.appendChild(openTreeBtn);
 
-const openDetachingTreeBtn = document.createElement('button');
+const openDetachingTreeBtn = document.createElement("button");
 openDetachingTreeBtn.textContent = "Open parent-child tree (detach on drag)";
 openDetachingTreeBtn.addEventListener("click", () => {
   const parent = openTestWindow("Detaching tree parent", 640, 60);
   const child = openTestWindow("Detaching tree child", 760, 180);
   const grandchild = openTestWindow("Detaching tree grandchild", 880, 300);
-  wm.attachWindowToParent(child, parent, {detachOnDrag: true});
+  wm.attachWindowToParent(child, parent, { detachOnDrag: true });
   wm.attachWindowToParent(grandchild, child);
 });
 desktopButtonsContainerElement.appendChild(openDetachingTreeBtn);
 
-const debugResizeBtn = document.createElement('button');
+const debugResizeBtn = document.createElement("button");
 debugResizeBtn.textContent = "Toggle debug resize regions visualization";
 debugResizeBtn.addEventListener("click", () => document.body.classList.toggle("debug-resize"));
 desktopButtonsContainerElement.appendChild(debugResizeBtn);
 
-const resetTranslateBtn = document.createElement('button');
+const resetTranslateBtn = document.createElement("button");
 resetTranslateBtn.textContent = "Reset translate";
 resetTranslateBtn.addEventListener("click", () => wm.setViewportTranslate(0, 0));
 desktopButtonsContainerElement.appendChild(resetTranslateBtn);
 
-const resetZoomBtn = document.createElement('button');
+const resetZoomBtn = document.createElement("button");
 resetZoomBtn.textContent = "Reset zoom";
 resetZoomBtn.addEventListener("click", () => wm.resetZoomLevel());
 desktopButtonsContainerElement.appendChild(resetZoomBtn);
 
-const translateLabel = document.createElement('div');
+const translateLabel = document.createElement("div");
 translateLabel.textContent = formatTranslate(wm.getViewportTranslate());
 wm.addEventListener("viewport-translated", (e) => {
   translateLabel.textContent = formatTranslate(e.detail);
 });
 desktopButtonsContainerElement.appendChild(translateLabel);
 
-const reactDemoLink = document.createElement('a');
+const reactDemoLink = document.createElement("a");
 reactDemoLink.href = "/react.html";
 reactDemoLink.textContent = "React demo →";
 desktopButtonsContainerElement.appendChild(reactDemoLink);
 
-const solidDemoLink = document.createElement('a');
+const solidDemoLink = document.createElement("a");
 solidDemoLink.href = "/solid.html";
 solidDemoLink.textContent = "Solid.js demo →";
 desktopButtonsContainerElement.appendChild(solidDemoLink);

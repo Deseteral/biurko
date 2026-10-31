@@ -58,9 +58,7 @@ function App(): JSX.Element {
   return (
     <BiurkoDesktop
       class="biurko-desktop"
-      renderWindow={(handle, content) => (
-        <WindowChrome handle={handle}>{content()}</WindowChrome>
-      )}
+      renderWindow={(handle, content) => <WindowChrome handle={handle}>{content()}</WindowChrome>}
     >
       <DesktopControls />
     </BiurkoDesktop>

@@ -66,7 +66,7 @@ export type WindowPositionStrategy =
   | { readonly type: "offset-from-focused"; readonly offsetX: number; readonly offsetY: number };
 
 export const RESIZE_DIRECTIONS = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
-export type ResizeDirection = typeof RESIZE_DIRECTIONS[number];
+export type ResizeDirection = (typeof RESIZE_DIRECTIONS)[number];
 
 /**
  * Determines how the {@link WindowManager} desktop behaves.
@@ -78,9 +78,7 @@ export type ResizeDirection = typeof RESIZE_DIRECTIONS[number];
  *   world layer that can be moved with the mouse wheel or the viewport translate API, and window
  *   placement is not clamped to the viewport.
  */
-export type DesktopMode =
-  | { readonly type: "static" }
-  | { readonly type: "infinite-canvas" };
+export type DesktopMode = { readonly type: "static" } | { readonly type: "infinite-canvas" };
 
 /**
  * Determines which window content surfaces can receive pointer input events.
@@ -90,9 +88,7 @@ export type DesktopMode =
  *
  * Drag regions (`data-biurko-drag-region`) and resize handles remain interactive in both modes.
  */
-export type WindowInteractivity =
-  | { readonly type: "all" }
-  | { readonly type: "focused-only" };
+export type WindowInteractivity = { readonly type: "all" } | { readonly type: "focused-only" };
 
 /**
  * Configuration for a parent-child window relationship

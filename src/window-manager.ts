@@ -6,7 +6,7 @@ import {
   type WindowInteractivity,
   type WindowParentOptions,
   type WindowPositionStrategy,
-  type WindowRect
+  type WindowRect,
 } from "./types.ts";
 import type {
   ViewportTranslatedEventDetail,
@@ -16,9 +16,9 @@ import type {
   WindowOpenedEventDetail,
   WindowParentChangedEventDetail,
 } from "./events.ts";
-import {createDragState, type DragState} from "./drag-state.ts";
-import {createResizeState, type ResizeState} from "./resize-state.ts";
-import {applyResizeRegionStyles} from "./resize-region-styling.ts";
+import { createDragState, type DragState } from "./drag-state.ts";
+import { createResizeState, type ResizeState } from "./resize-state.ts";
+import { applyResizeRegionStyles } from "./resize-region-styling.ts";
 
 /**
  * Parent-child relationship of a window: the parent's handle and its relationship options.
@@ -131,16 +131,16 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     super();
     this.desktopElement = container;
     this.desktopElement.classList.add("biurko-desktop");
-    this.desktopElement.dataset['biurkoType'] = 'desktop';
-    this.mode = options?.mode ?? {type: "static"};
-    this.windowInteractivity = options?.windowInteractivity ?? {type: 'all'};
+    this.desktopElement.dataset["biurkoType"] = "desktop";
+    this.mode = options?.mode ?? { type: "static" };
+    this.windowInteractivity = options?.windowInteractivity ?? { type: "all" };
     this.resizeRegionSize = options?.resizeRegionSize ?? DEFAULT_RESIZE_REGION_SIZE;
-    this.positionStrategy = options?.positionStrategy ?? {type: "required"};
+    this.positionStrategy = options?.positionStrategy ?? { type: "required" };
 
     this.desktopElement.style.position = "relative";
 
     const scrollerElement = document.createElement("div");
-    scrollerElement.dataset['biurkoType'] = 'scroller';
+    scrollerElement.dataset["biurkoType"] = "scroller";
     scrollerElement.style.position = "absolute";
     scrollerElement.style.top = "0px";
     scrollerElement.style.left = "0px";
@@ -150,11 +150,11 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
 
     if (this.mode.type === "infinite-canvas") {
       scrollerElement.style.overscrollBehavior = "none";
-      scrollerElement.addEventListener("wheel", (e: WheelEvent): void => this.onWheel(e), {passive: false});
+      scrollerElement.addEventListener("wheel", (e: WheelEvent): void => this.onWheel(e), { passive: false });
     }
 
     const worldElement = document.createElement("div");
-    worldElement.dataset['biurkoType'] = "world";
+    worldElement.dataset["biurkoType"] = "world";
     worldElement.style.position = "absolute";
     worldElement.style.top = "0px";
     worldElement.style.left = "0px";
@@ -198,7 +198,10 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
    * @returns A unique {@link WindowHandle} identifying the created window.
    * @throws Error if either coordinate is missing when the position strategy is `"required"`.
    */
-  public createWindow(options: CreateWindowOptions, ...args: AttachedDataT extends NoAttachedData ? [] : [data: AttachedDataT]): WindowHandle {
+  public createWindow(
+    options: CreateWindowOptions,
+    ...args: AttachedDataT extends NoAttachedData ? [] : [data: AttachedDataT]
+  ): WindowHandle {
     const handle = crypto.randomUUID() as WindowHandle;
     const data = args[0] as AttachedDataT | undefined;
     const position = this.resolveInitialPosition(options.x, options.y);
@@ -206,7 +209,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     // Create root window element.
     const element = document.createElement("div");
     element.dataset["windowHandle"] = handle;
-    element.dataset["biurkoType"] = 'window';
+    element.dataset["biurkoType"] = "window";
     element.style.position = "absolute";
     const originOffset = this.worldOriginOffset;
     element.style.left = `${position.x + originOffset}px`;
@@ -220,7 +223,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     surface.style.height = "100%";
     surface.style.overflow = "hidden";
 
-    if (this.windowInteractivity.type === 'focused-only') {
+    if (this.windowInteractivity.type === "focused-only") {
       surface.style.pointerEvents = "none";
     }
 
@@ -278,9 +281,11 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     // Make new window focused.
     this.focusWindow(handle);
 
-    this.dispatchEvent(new CustomEvent<WindowOpenedEventDetail>("window-opened", {
-      detail: {handle},
-    }));
+    this.dispatchEvent(
+      new CustomEvent<WindowOpenedEventDetail>("window-opened", {
+        detail: { handle },
+      }),
+    );
 
     return handle;
   }
@@ -300,7 +305,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
       if (state.handle === handle) continue;
 
       // Currently focused window needs to stop receiving pointer events.
-      if (this.windowInteractivity.type === 'focused-only' && state.orderIdx === 0) {
+      if (this.windowInteractivity.type === "focused-only" && state.orderIdx === 0) {
         state.surface.style.pointerEvents = "none";
       }
 
@@ -318,9 +323,11 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     target.orderIdx = 0;
     this.applyWindowOrdering();
 
-    this.dispatchEvent(new CustomEvent<WindowFocusedEventDetail>("window-focused", {
-      detail: {handle},
-    }));
+    this.dispatchEvent(
+      new CustomEvent<WindowFocusedEventDetail>("window-focused", {
+        detail: { handle },
+      }),
+    );
   }
 
   /**
@@ -365,9 +372,11 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     }
 
     for (const state of subtree) {
-      this.dispatchEvent(new CustomEvent<WindowClosedEventDetail>("window-closed", {
-        detail: {handle: state.handle},
-      }));
+      this.dispatchEvent(
+        new CustomEvent<WindowClosedEventDetail>("window-closed", {
+          detail: { handle: state.handle },
+        }),
+      );
     }
   }
 
@@ -406,9 +415,11 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
       detachOnDrag: options?.detachOnDrag ?? false,
     };
 
-    this.dispatchEvent(new CustomEvent<WindowParentChangedEventDetail>("window-parent-changed", {
-      detail: {handle: child, previousParent, parent},
-    }));
+    this.dispatchEvent(
+      new CustomEvent<WindowParentChangedEventDetail>("window-parent-changed", {
+        detail: { handle: child, previousParent, parent },
+      }),
+    );
   }
 
   /**
@@ -427,9 +438,11 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     const previousParent = childState.parentWindow?.handle ?? null;
     childState.parentWindow = null;
 
-    this.dispatchEvent(new CustomEvent<WindowParentChangedEventDetail>("window-parent-changed", {
-      detail: {handle: child, previousParent, parent: null},
-    }));
+    this.dispatchEvent(
+      new CustomEvent<WindowParentChangedEventDetail>("window-parent-changed", {
+        detail: { handle: child, previousParent, parent: null },
+      }),
+    );
   }
 
   /**
@@ -468,7 +481,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
    */
   public getWindowParentOptions(child: WindowHandle): Required<WindowParentOptions> {
     const childState = this.windows.get(child);
-    return {detachOnDrag: childState?.parentWindow?.detachOnDrag ?? false};
+    return { detachOnDrag: childState?.parentWindow?.detachOnDrag ?? false };
   }
 
   /**
@@ -546,7 +559,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   public getMinSize(handle: WindowHandle): { minWidth: number; minHeight: number } | null {
     const windowState = this.windows.get(handle);
     if (!windowState) return null;
-    return {minWidth: windowState.minWidth, minHeight: windowState.minHeight};
+    return { minWidth: windowState.minWidth, minHeight: windowState.minHeight };
   }
 
   /**
@@ -570,7 +583,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
    * @returns The horizontal and vertical translate offsets in pixels.
    */
   public getViewportTranslate(): { x: number; y: number } {
-    return {x: this.translateX, y: this.translateY};
+    return { x: this.translateX, y: this.translateY };
   }
 
   /**
@@ -592,9 +605,11 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     this.scrollerElement.scrollLeft = WORLD_ORIGIN_OFFSET - this.translateX;
     this.scrollerElement.scrollTop = WORLD_ORIGIN_OFFSET - this.translateY;
 
-    this.dispatchEvent(new CustomEvent<ViewportTranslatedEventDetail>("viewport-translated", {
-      detail: {x, y},
-    }));
+    this.dispatchEvent(
+      new CustomEvent<ViewportTranslatedEventDetail>("viewport-translated", {
+        detail: { x, y },
+      }),
+    );
   }
 
   /**
@@ -630,7 +645,6 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     this.setZoomLevel(this.zoomLevel + delta);
   }
 
-
   /** Resets the world layer's zoom level to `1` without changing the viewport translation. */
   public resetZoomLevel(): void {
     this.setZoomLevel(DEFAULT_ZOOM_LEVEL);
@@ -652,10 +666,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     this.setZoomLevel(level);
 
     const zoomDelta = this.zoomLevel - previousZoomLevel;
-    this.setViewportTranslate(
-      this.translateX - zoomDelta * point.x,
-      this.translateY - zoomDelta * point.y,
-    );
+    this.setViewportTranslate(this.translateX - zoomDelta * point.x, this.translateY - zoomDelta * point.y);
   }
 
   /**
@@ -682,8 +693,8 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     const ignoreOriginElement = e.altKey;
 
     if (!ignoreOriginElement) {
-      const type = (e.target as HTMLHtmlElement).dataset['biurkoType'];
-      if (type !== this.scrollerElement.dataset['biurkoType'] && type !== this.worldElement.dataset['biurkoType']) {
+      const type = (e.target as HTMLHtmlElement).dataset["biurkoType"];
+      if (type !== this.scrollerElement.dataset["biurkoType"] && type !== this.worldElement.dataset["biurkoType"]) {
         return;
       }
     }
@@ -761,7 +772,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   /** Clamp position so that at least `margin` pixels of the window remain visible within the container. */
   private clampWindowPositionWithinDesktop(x: number, y: number, windowWidth: number): { x: number; y: number } {
     if (this.mode.type === "infinite-canvas") {
-      return {x, y};
+      return { x, y };
     }
 
     const containerRect = this.desktopElement.getBoundingClientRect();
@@ -775,7 +786,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   private resolveInitialPosition(x: number | undefined, y: number | undefined): { x: number; y: number } {
     // If explicit coordinates are provided ignore position strategy.
     if (x !== undefined && y !== undefined) {
-      return {x, y};
+      return { x, y };
     }
 
     if (this.positionStrategy.type === "required") {
@@ -784,17 +795,17 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
 
     const getPositionOfCurrentlyFocusedWindow = (): { x: number; y: number } => {
       const handle = this.getFocusedWindow();
-      if (!handle) return {x: 0, y: 0};
+      if (!handle) return { x: 0, y: 0 };
       const rect = this.getWindowRect(handle);
-      if (!rect) return {x: 0, y: 0};
+      if (!rect) return { x: 0, y: 0 };
 
-      return {x: rect.x, y: rect.y};
+      return { x: rect.x, y: rect.y };
     };
 
-    const {offsetX, offsetY} = this.positionStrategy;
-    const {x: baseX, y: baseY} = getPositionOfCurrentlyFocusedWindow();
+    const { offsetX, offsetY } = this.positionStrategy;
+    const { x: baseX, y: baseY } = getPositionOfCurrentlyFocusedWindow();
 
-    return {x: baseX + offsetX, y: baseY + offsetY};
+    return { x: baseX + offsetX, y: baseY + offsetY };
   }
 
   /**
@@ -803,8 +814,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
    * This method must be called everytime any orderIdx is changed.
    */
   private applyWindowOrdering(): void {
-    const sortedWindows = [...this.windows.values()]
-      .sort((a, b) => a.orderIdx - b.orderIdx);
+    const sortedWindows = [...this.windows.values()].sort((a, b) => a.orderIdx - b.orderIdx);
 
     for (const [idx, state] of sortedWindows.entries()) {
       state.orderIdx = idx;

@@ -1,4 +1,4 @@
-import type {ResizeDirection} from "./types.ts";
+import type { ResizeDirection } from "./types.ts";
 
 export function applyResizeRegionStyles(el: HTMLDivElement, direction: ResizeDirection, regionSize: number): void {
   el.style.position = "absolute";

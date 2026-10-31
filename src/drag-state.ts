@@ -1,6 +1,6 @@
-import type {WindowHandle} from "./types.ts";
-import {WindowManager} from "./window-manager.ts";
-import type {WindowMovedEventDetail} from "./events.ts";
+import type { WindowHandle } from "./types.ts";
+import { WindowManager } from "./window-manager.ts";
+import type { WindowMovedEventDetail } from "./events.ts";
 
 export interface DragState {
   start(handle: WindowHandle, clientX: number, clientY: number): void;
@@ -25,9 +25,11 @@ export function createDragState(wm: WindowManager<unknown>): DragState {
     if (activeHandle) {
       const rect = wm.getWindowRect(activeHandle);
       if (rect) {
-        wm.dispatchEvent(new CustomEvent<WindowMovedEventDetail>("window-moved", {
-          detail: {handle: activeHandle, x: rect.x, y: rect.y},
-        }));
+        wm.dispatchEvent(
+          new CustomEvent<WindowMovedEventDetail>("window-moved", {
+            detail: { handle: activeHandle, x: rect.x, y: rect.y },
+          }),
+        );
       }
     }
 

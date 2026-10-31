@@ -1,8 +1,8 @@
-import { type ReactNode, useCallback, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { WindowManager, type WindowManagerOptions } from '../../window-manager.ts';
-import { type WindowHandle } from '../../types.ts';
-import { BiurkoContext, type ReactWindowManager } from './biurko-context.ts';
+import { type ReactNode, useCallback, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { WindowManager, type WindowManagerOptions } from "../../window-manager.ts";
+import { type WindowHandle } from "../../types.ts";
+import { BiurkoContext, type ReactWindowManager } from "./biurko-context.ts";
 
 interface WindowEntry {
   handle: WindowHandle;
@@ -60,7 +60,7 @@ export function BiurkoDesktop(props: BiurkoDesktopProps): ReactNode {
 
     const manager: ReactWindowManager = new WindowManager<() => ReactNode>(el, props.options);
 
-    manager.addEventListener('window-opened', (e) => {
+    manager.addEventListener("window-opened", (e) => {
       const { handle } = e.detail;
       const surface = manager.getWindowSurface(handle);
       const render = manager.getWindowData(handle);
@@ -68,7 +68,7 @@ export function BiurkoDesktop(props: BiurkoDesktopProps): ReactNode {
       setWindows((prev) => [...prev, { handle, surface, render }]);
     });
 
-    manager.addEventListener('window-closed', (e) => {
+    manager.addEventListener("window-closed", (e) => {
       setWindows((prev) => prev.filter((w) => w.handle !== e.detail.handle));
     });
 
@@ -83,11 +83,7 @@ export function BiurkoDesktop(props: BiurkoDesktopProps): ReactNode {
           {props.children}
 
           {windows.map((w) =>
-            createPortal(
-              props.renderWindow ? props.renderWindow(w.handle, w.render) : w.render(),
-              w.surface,
-              w.handle,
-            ),
+            createPortal(props.renderWindow ? props.renderWindow(w.handle, w.render) : w.render(), w.surface, w.handle),
           )}
         </BiurkoContext.Provider>
       )}

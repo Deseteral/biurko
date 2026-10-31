@@ -1,9 +1,9 @@
 /** @jsxImportSource solid-js */
-import { createSignal, For, Show, type JSX } from 'solid-js';
-import { Portal } from 'solid-js/web';
-import { WindowManager, type WindowManagerOptions } from '../../window-manager.ts';
-import { type WindowHandle } from '../../types.ts';
-import { BiurkoContext, type SolidJsWindowManager } from './biurko-context.ts';
+import { createSignal, For, Show, type JSX } from "solid-js";
+import { Portal } from "solid-js/web";
+import { WindowManager, type WindowManagerOptions } from "../../window-manager.ts";
+import { type WindowHandle } from "../../types.ts";
+import { BiurkoContext, type SolidJsWindowManager } from "./biurko-context.ts";
 
 interface WindowEntry {
   handle: WindowHandle;
@@ -58,7 +58,7 @@ export function BiurkoDesktop(props: BiurkoDesktopProps): JSX.Element {
   const initRef = (el: HTMLDivElement): void => {
     const manager: SolidJsWindowManager = new WindowManager<() => JSX.Element>(el, props.options);
 
-    manager.addEventListener('window-opened', (e) => {
+    manager.addEventListener("window-opened", (e) => {
       const { handle } = e.detail;
       const surface = manager.getWindowSurface(handle);
       const render = manager.getWindowData(handle);
@@ -66,7 +66,7 @@ export function BiurkoDesktop(props: BiurkoDesktopProps): JSX.Element {
       setWindows((prev) => [...prev, { handle, surface, render }]);
     });
 
-    manager.addEventListener('window-closed', (e) => {
+    manager.addEventListener("window-closed", (e) => {
       setWindows((prev) => prev.filter((w) => w.handle !== e.detail.handle));
     });
 
@@ -86,7 +86,9 @@ export function BiurkoDesktop(props: BiurkoDesktopProps): JSX.Element {
                   mount={w.surface}
                   // <Portal> generates a wrapper div that breaks biurko-surface layout.
                   // display: contents removes it from the box tree.
-                  ref={(el) => { el.style.display = 'contents'; }}
+                  ref={(el) => {
+                    el.style.display = "contents";
+                  }}
                 >
                   {props.renderWindow ? props.renderWindow(w.handle, w.render) : w.render()}
                 </Portal>

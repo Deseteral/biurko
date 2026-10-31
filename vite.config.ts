@@ -2,6 +2,10 @@ import { defineConfig } from "vite-plus";
 import solidPlugin from "vite-plugin-solid";
 
 export default defineConfig({
+  fmt: {},
+  check: {
+    lint: false,
+  },
   pack: {
     entry: {
       index: "src/index.ts",

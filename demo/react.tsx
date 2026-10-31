@@ -57,9 +57,7 @@ function App() {
   return (
     <BiurkoDesktop
       className="biurko-desktop"
-      renderWindow={(handle, content) => (
-        <WindowChrome handle={handle}>{content()}</WindowChrome>
-      )}
+      renderWindow={(handle, content) => <WindowChrome handle={handle}>{content()}</WindowChrome>}
     >
       <DesktopControls />
     </BiurkoDesktop>

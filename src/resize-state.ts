@@ -1,6 +1,6 @@
-import type {ResizeDirection, WindowHandle, WindowRect} from "./types.ts";
-import type {WindowManager} from "./window-manager.ts";
-import type {WindowResizedEventDetail} from "./events.ts";
+import type { ResizeDirection, WindowHandle, WindowRect } from "./types.ts";
+import type { WindowManager } from "./window-manager.ts";
+import type { WindowResizedEventDetail } from "./events.ts";
 
 export interface ResizeState {
   start(handle: WindowHandle, direction: ResizeDirection, clientX: number, clientY: number): void;
@@ -14,7 +14,7 @@ export function createResizeState(wm: WindowManager<unknown>): ResizeState {
   let activeDirection: ResizeDirection | null = null;
   let startX = 0;
   let startY = 0;
-  let startRect: WindowRect = {x: 0, y: 0, width: 0, height: 0};
+  let startRect: WindowRect = { x: 0, y: 0, width: 0, height: 0 };
   let minWidth = 0;
   let minHeight = 0;
 
@@ -29,7 +29,7 @@ export function createResizeState(wm: WindowManager<unknown>): ResizeState {
     activeDirection = direction;
     startX = clientX;
     startY = clientY;
-    startRect = {...rect};
+    startRect = { ...rect };
     minWidth = minSize.minWidth;
     minHeight = minSize.minHeight;
 
@@ -51,9 +51,11 @@ export function createResizeState(wm: WindowManager<unknown>): ResizeState {
     let newHeight = startRect.height;
 
     // Horizontal component.
-    if (activeDirection.includes("e")) { // Grow in x-axis.
+    if (activeDirection.includes("e")) {
+      // Grow in x-axis.
       newWidth = Math.max(minWidth, startRect.width + dx);
-    } else if (activeDirection.includes("w")) { // Shrink in x-axis.
+    } else if (activeDirection.includes("w")) {
+      // Shrink in x-axis.
       const proposedWidth = startRect.width - dx;
       if (proposedWidth >= minWidth) {
         newWidth = proposedWidth;
@@ -65,9 +67,11 @@ export function createResizeState(wm: WindowManager<unknown>): ResizeState {
     }
 
     // Vertical component.
-    if (activeDirection.includes("s")) { // Grow in y-axis.
+    if (activeDirection.includes("s")) {
+      // Grow in y-axis.
       newHeight = Math.max(minHeight, startRect.height + dy);
-    } else if (activeDirection.includes("n")) { // Shrink in y-axis.
+    } else if (activeDirection.includes("n")) {
+      // Shrink in y-axis.
       const proposedHeight = startRect.height - dy;
       if (proposedHeight >= minHeight) {
         newHeight = proposedHeight;
@@ -85,9 +89,11 @@ export function createResizeState(wm: WindowManager<unknown>): ResizeState {
     if (activeHandle) {
       const rect = wm.getWindowRect(activeHandle);
       if (rect) {
-        wm.dispatchEvent(new CustomEvent<WindowResizedEventDetail>("window-resized", {
-          detail: {handle: activeHandle, x: rect.x, y: rect.y, width: rect.width, height: rect.height},
-        }));
+        wm.dispatchEvent(
+          new CustomEvent<WindowResizedEventDetail>("window-resized", {
+            detail: { handle: activeHandle, x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+          }),
+        );
       }
     }
 

@@ -4,10 +4,7 @@ import solid from "vite-plugin-solid";
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
-  plugins: [
-    solid({ include: /solid.*\.[jt]sx$/ }),
-    react({ include: /react.*\.[jt]sx$/ }),
-  ],
+  plugins: [solid({ include: /solid.*\.[jt]sx$/ }), react({ include: /react.*\.[jt]sx$/ })],
   build: {
     rolldownOptions: {
       input: {
