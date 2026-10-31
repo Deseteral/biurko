@@ -27,8 +27,9 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: "24"
+          node-version: "26"
           registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
 
       - name: Set up npm
         run: npm install --global npm@11.20.0
@@ -72,5 +73,4 @@ jobs:
       - name: Publish
         env:
           DIST_TAG: ${{ steps.version.outputs.dist-tag }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --tag "$DIST_TAG" --provenance
+        run: npm publish --tag "$DIST_TAG"
