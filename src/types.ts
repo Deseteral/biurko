@@ -43,6 +43,15 @@ export interface CreateWindowOptions {
 
   /** Minimum height constraint enforced during resize. Defaults to `0`. */
   minHeight?: number;
+
+  /**
+   * Overrides the desktop's `windowInteractivity` setting for this window's content surface.
+   * `true` keeps the surface interactive regardless of focus; `false` disables pointer input
+   * even when focused.
+   * When omitted, the desktop setting applies.
+   * Drag regions and resize handles remain interactive regardless of this option.
+   */
+  interactive?: boolean;
 }
 
 /**

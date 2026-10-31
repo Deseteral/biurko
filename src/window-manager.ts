@@ -37,6 +37,7 @@ interface WindowState<AttachedDataT> {
   surface: HTMLDivElement;
   title: string;
   data: AttachedDataT | undefined;
+  interactive: boolean | undefined;
   minWidth: number;
   minHeight: number;
   orderIdx: number;
@@ -223,7 +224,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     surface.style.height = "100%";
     surface.style.overflow = "hidden";
 
-    if (this.windowInteractivity.type === "focused-only") {
+    if (!(options.interactive ?? this.windowInteractivity.type === "all")) {
       surface.style.pointerEvents = "none";
     }
 
@@ -261,6 +262,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
       surface,
       title: options.title,
       data,
+      interactive: options.interactive,
       minWidth: options.minWidth ?? 0,
       minHeight: options.minHeight ?? 0,
       orderIdx: this.windows.size, // Put window behind other windows, and let focusing logic handle ordering.
@@ -306,8 +308,8 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     for (const state of this.windows.values()) {
       if (state.handle === handle) continue;
 
-      // Currently focused window needs to stop receiving pointer events.
-      if (this.windowInteractivity.type === "focused-only" && state.orderIdx === 0) {
+      // Disable the previously focused surface only when it inherits focused-only interactivity.
+      if (state.interactive === undefined && this.windowInteractivity.type === "focused-only" && state.orderIdx === 0) {
         state.surface.style.pointerEvents = "none";
       }
 
@@ -318,8 +320,8 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
       }
     }
 
-    // Newly focused windows needs to start receiving pointer events.
-    target.surface.style.pointerEvents = "all";
+    // Focus enables pointer input unless this window explicitly disables it.
+    target.surface.style.pointerEvents = target.interactive === false ? "none" : "all";
 
     // Bring newly focused window to the front.
     target.orderIdx = 0;
