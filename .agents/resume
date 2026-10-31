@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Dependencies are restored from the setup snapshot. No authentication or
+# background services need repairing when this repository's orb resumes.
