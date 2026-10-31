@@ -39,6 +39,8 @@
     "build:demo": "vp build demo/",
     "prepack": "npm run typecheck && npm run build",
     "typecheck": "tsc --noEmit",
+    "lint": "vp lint",
+    "check": "vp check",
     "format": "vp fmt",
     "format:check": "vp fmt --check",
     "demo": "vp dev demo/"

@@ -23,12 +23,14 @@ The project’s `.npmrc` saves exact dependency versions, disables install lifec
 | `npm run build:demo`   | Build all three demo pages with `vp build`.            |
 | `npm run demo`         | Start the Vite+ dev server with the demo app.          |
 | `npm run typecheck`    | Run TypeScript type checking.                          |
+| `npm run lint`         | Run Oxlint rules and type checking.                    |
+| `npm run check`        | Check formatting, lint rules, and types together.      |
 | `npm run format`       | Format the project with Vite+ (Oxfmt).                 |
 | `npm run format:check` | Check formatting without modifying files.              |
 
 `vp pack` builds the library; `vp build demo/` builds the demo application. To run these local commands directly, use `npm exec --no -- vp`. There are currently no tests or test script.
 
-Formatting uses the `fmt` block in `vite.config.ts` and the existing `.editorconfig` style. `vp check` checks formatting only: linting is disabled for now, and type checking remains available separately through `npm run typecheck`.
+Formatting uses the `fmt` block in `vite.config.ts` and the existing `.editorconfig` style. Linting uses Oxlint's default rules with type-aware linting and type checking enabled in the `lint` block. Linting includes the library and demo code, excluding generated output. `vp check` checks formatting, lint rules, and types together; TypeScript checking remains available separately through `npm run typecheck`.
 
 CI runs formatting checks, type checking, and both builds on pushes and pull requests. Orb setup installs the pinned npm version when needed and runs `npm ci`; resume requires no additional setup.
 
