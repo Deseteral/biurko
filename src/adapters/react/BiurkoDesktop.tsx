@@ -2,7 +2,7 @@ import { type ReactNode, useCallback, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { WindowManager, type WindowManagerOptions } from "../../window-manager.ts";
 import { type WindowHandle } from "../../types.ts";
-import { BiurkoContext, type ReactWindowManager } from "./biurko-context.ts";
+import { BiurkoContext, CurrentWindowContext, type ReactWindowManager } from "./biurko-context.ts";
 
 interface WindowEntry {
   handle: WindowHandle;
@@ -30,12 +30,25 @@ export interface BiurkoDesktopProps {
 
   /**
    * Optional render function to wrap each window's content with custom chrome (title bar, close button, etc.).
+   * Runs within that window's context, so it and the components it returns can use `useCurrentWindowHandle`.
    *
    * @param handle - The handle of the window being rendered.
    * @param content - A function that returns the window's content (the render function passed to `createWindow`).
    * @returns The decorated window content to be portaled into the window surface.
    */
   renderWindow?: (handle: WindowHandle, content: () => ReactNode) => ReactNode;
+}
+
+// Invoke render callbacks in a child component so the window and manager providers
+// are already ancestors when the callbacks execute.
+function WindowContent({
+  entry,
+  renderWindow,
+}: {
+  entry: WindowEntry;
+  renderWindow: BiurkoDesktopProps["renderWindow"];
+}): ReactNode {
+  return renderWindow ? renderWindow(entry.handle, entry.render) : entry.render();
 }
 
 /**
@@ -83,7 +96,13 @@ export function BiurkoDesktop(props: BiurkoDesktopProps): ReactNode {
           {props.children}
 
           {windows.map((w) =>
-            createPortal(props.renderWindow ? props.renderWindow(w.handle, w.render) : w.render(), w.surface, w.handle),
+            createPortal(
+              <CurrentWindowContext.Provider value={w.handle}>
+                <WindowContent entry={w} renderWindow={props.renderWindow} />
+              </CurrentWindowContext.Provider>,
+              w.surface,
+              w.handle,
+            ),
           )}
         </BiurkoContext.Provider>
       )}
