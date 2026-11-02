@@ -2,6 +2,7 @@ export type {
   WindowHandle,
   CreateWindowOptions,
   WindowRect,
+  WindowPlacement,
   WindowPositionStrategy,
   DesktopMode,
   WindowParentOptions,

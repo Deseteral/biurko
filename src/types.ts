@@ -13,16 +13,23 @@ export interface CreateWindowOptions {
   /**
    * Initial horizontal position (in pixels) in desktop coordinate space.
    * Both `x` and `y` must be supplied to use explicit coordinates. If either is omitted,
-   * the configured {@link WindowPositionStrategy} determines both coordinates.
+   * `placement` or the configured {@link WindowPositionStrategy} determines both coordinates.
    */
   x?: number;
 
   /**
    * Initial vertical position (in pixels) in desktop coordinate space.
    * Both `x` and `y` must be supplied to use explicit coordinates. If either is omitted,
-   * the configured {@link WindowPositionStrategy} determines both coordinates.
+   * `placement` or the configured {@link WindowPositionStrategy} determines both coordinates.
    */
   y?: number;
+
+  /**
+   * One-time placement relative to a window or a desktop/world rectangle.
+   * Used when a complete `x`/`y` pair is not supplied, before the desktop position strategy.
+   * Does not attach the window or track subsequent movement, resizing, or content changes.
+   */
+  placement?: WindowPlacement;
 
   /**
    * Initial width in pixels. Omit to track the content's intrinsic (max-content) width.
@@ -75,10 +82,34 @@ export interface WindowRect {
   height: number;
 }
 
+/** One-time anchor-relative placement in desktop/world coordinates, unaffected by pan or zoom. */
+export interface WindowPlacement {
+  /** An open window in this manager (sampled at creation), or a rectangle in desktop/world coordinates. */
+  anchor: WindowHandle | WindowRect;
+
+  /** Which outside edge of the anchor to place the new window against. */
+  side: "top" | "right" | "bottom" | "left";
+
+  /**
+   * Alignment on the perpendicular axis: top-to-bottom for left/right, left-to-right for top/bottom.
+   * `center` and `end` require the new window's explicit height for left/right, or width for top/bottom.
+   * @defaultValue `"start"`
+   */
+  align?: "start" | "center" | "end";
+
+  /**
+   * Edge separation in world pixels; negative values overlap the anchor. Defaults to `0`.
+   * Placement on the left requires explicit width; placement on top requires explicit height.
+   * Missing required dimensions or a closed/unknown anchor handle throws before creating a window.
+   */
+  gap?: number;
+}
+
 /**
- * Determines how the {@link WindowManager} positions new windows when explicit coordinates are not provided.
+ * Determines how the {@link WindowManager} positions new windows when neither explicit coordinates
+ * nor per-window placement is provided.
  *
- * - `"required"` - The caller must always provide `x` and `y`.
+ * - `"required"` - The caller must provide `x` and `y` or per-window `placement`.
  * - `"offset-from-focused"` - The new window is placed at an offset from the currently focused window.
  *   If no window is focused, the offset is applied to the desktop origin `(0, 0)`.
  */

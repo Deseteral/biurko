@@ -5,6 +5,7 @@ import {
   type WindowHandle,
   type WindowInteractivity,
   type WindowParentOptions,
+  type WindowPlacement,
   type WindowPositionStrategy,
   type WindowRect,
 } from "./types.ts";
@@ -42,6 +43,7 @@ interface WindowState<AttachedDataT> {
   minHeight: number;
   orderIdx: number;
   parentWindow: WindowParent | null;
+  position: { x: number; y: number };
 }
 
 const DEFAULT_RESIZE_REGION_SIZE = 6;
@@ -194,11 +196,14 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
    * Dispatches `"window-focused"` before `"window-opened"`.
    * Initial position and size are not clamped to desktop bounds or minimum size constraints.
    * If width or height is omitted, that dimension automatically grows and shrinks to fit the content.
+   * Relative placement is resolved before either event, using only explicit dimensions when needed
+   * for alignment. Content mounted by event listeners does not recalculate placement.
    *
    * @param options - Configuration details (see {@link CreateWindowOptions}).
    * @param args - If `AttachedDataT` is not `void`, the attached data must be passed as the second argument.
    * @returns A unique {@link WindowHandle} identifying the created window.
-   * @throws Error if either coordinate is missing when the position strategy is `"required"`.
+   * @throws Error if placement has an invalid anchor or lacks a required dimension, or if neither
+   *   placement nor both coordinates are provided when the position strategy is `"required"`.
    */
   public createWindow(
     options: CreateWindowOptions,
@@ -206,7 +211,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
   ): WindowHandle {
     const handle = crypto.randomUUID() as WindowHandle;
     const data = args[0] as AttachedDataT | undefined;
-    const position = this.resolveInitialPosition(options.x, options.y);
+    const position = this.resolveInitialPosition(options);
 
     // Create root window element.
     const element = document.createElement("div");
@@ -268,6 +273,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
       minHeight: options.minHeight ?? 0,
       orderIdx: this.windows.size, // Put window behind other windows, and let focusing logic handle ordering.
       parentWindow: null,
+      position,
     };
     this.windows.set(handle, state);
 
@@ -738,6 +744,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     const originOffset = this.worldOriginOffset;
     for (const state of this.collectWindowSubtree(handle)) {
       const rect = this.getWindowRectInWorldCoords(state);
+      state.position = { x: rect.x + dx, y: rect.y + dy };
       state.element.style.left = `${rect.x + dx + originOffset}px`;
       state.element.style.top = `${rect.y + dy + originOffset}px`;
     }
@@ -769,6 +776,7 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
 
     const el = windowState.element;
     const originOffset = this.worldOriginOffset;
+    windowState.position = clampedPosition;
     el.style.left = `${clampedPosition.x + originOffset}px`;
     el.style.top = `${clampedPosition.y + originOffset}px`;
     el.style.width = `${clampedWidth}px`;
@@ -790,29 +798,86 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
     };
   }
 
-  private resolveInitialPosition(x: number | undefined, y: number | undefined): { x: number; y: number } {
+  private resolveInitialPosition(options: CreateWindowOptions): { x: number; y: number } {
+    const { x, y, placement, width, height } = options;
     // If explicit coordinates are provided ignore position strategy.
     if (x !== undefined && y !== undefined) {
       return { x, y };
+    }
+
+    if (placement) {
+      return this.resolveRelativePosition(placement, width, height);
     }
 
     if (this.positionStrategy.type === "required") {
       throw new Error("Position strategy requires explicit coordinates but none were provided.");
     }
 
-    const getPositionOfCurrentlyFocusedWindow = (): { x: number; y: number } => {
-      const handle = this.getFocusedWindow();
-      if (!handle) return { x: 0, y: 0 };
-      const rect = this.getWindowRect(handle);
-      if (!rect) return { x: 0, y: 0 };
-
-      return { x: rect.x, y: rect.y };
-    };
-
     const { offsetX, offsetY } = this.positionStrategy;
-    const { x: baseX, y: baseY } = getPositionOfCurrentlyFocusedWindow();
+    const { x: baseX, y: baseY } = this.getPositionOfCurrentlyFocusedWindow();
 
     return { x: baseX + offsetX, y: baseY + offsetY };
+  }
+
+  private resolveRelativePosition(
+    placement: WindowPlacement,
+    width?: number,
+    height?: number,
+  ): { x: number; y: number } {
+    const anchor = typeof placement.anchor === "string" ? this.getWindowRect(placement.anchor) : placement.anchor;
+    if (!anchor) throw new Error("Relative placement requires an open anchor window in this manager.");
+
+    const { side, align = "start", gap = 0 } = placement;
+    let { x, y } = anchor;
+
+    // Place outside the requested edge. Left/top need the child's size to locate its far edge.
+    switch (side) {
+      case "right":
+        x += anchor.width + gap;
+        break;
+      case "left":
+        if (width === undefined) throw new Error("This relative placement requires an explicit width.");
+        x -= width + gap;
+        break;
+      case "bottom":
+        y += anchor.height + gap;
+        break;
+      case "top":
+        if (height === undefined) throw new Error("This relative placement requires an explicit height.");
+        y -= height + gap;
+        break;
+    }
+
+    // Start alignment already matches the anchor's origin and works with intrinsic dimensions.
+    if (align === "start") return { x, y };
+
+    // Center/end shift along the other axis by half/all of the difference in sizes.
+    const horizontal = side === "left" || side === "right";
+    const childSize = horizontal ? height : width;
+    if (childSize === undefined) {
+      const dimension = horizontal ? "height" : "width";
+      throw new Error(`This relative placement requires an explicit ${dimension}.`);
+    }
+
+    const anchorSize = horizontal ? anchor.height : anchor.width;
+    let alignmentOffset = anchorSize - childSize;
+    if (align === "center") alignmentOffset /= 2;
+
+    if (horizontal) {
+      y += alignmentOffset;
+    } else {
+      x += alignmentOffset;
+    }
+    return { x, y };
+  }
+
+  private getPositionOfCurrentlyFocusedWindow(): { x: number; y: number } {
+    const handle = this.getFocusedWindow();
+    if (!handle) return { x: 0, y: 0 };
+    const rect = this.getWindowRect(handle);
+    if (!rect) return { x: 0, y: 0 };
+
+    return { x: rect.x, y: rect.y };
   }
 
   /**
@@ -831,13 +896,12 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
 
   private getWindowRectInWorldCoords(windowState: WindowState<AttachedDataT>): WindowRect {
     const el = windowState.element;
-    const originOffset = this.worldOriginOffset;
     const autoWidth = el.style.width === "max-content";
     const autoHeight = el.style.height === "auto";
     const measuredRect = autoWidth || autoHeight ? el.getBoundingClientRect() : null;
     return {
-      x: parsePx(el.style.left) - originOffset,
-      y: parsePx(el.style.top) - originOffset,
+      x: windowState.position.x,
+      y: windowState.position.y,
       width: autoWidth ? measuredRect!.width / this.zoomLevel : parsePx(el.style.width),
       height: autoHeight ? measuredRect!.height / this.zoomLevel : parsePx(el.style.height),
     };
@@ -957,5 +1021,5 @@ export class WindowManager<AttachedDataT = NoAttachedData> extends EventTarget {
 }
 
 function parsePx(value: string): number {
-  return parseInt(value, 10) || 0;
+  return parseFloat(value) || 0;
 }
